@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LessonPrep — Stage 1 clickable prototype</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.proto-tabs{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0}
+.proto-tabs button{flex:1;padding:12px 4px;min-height:48px;border:0;background:#fff;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer}
+.proto-tabs button.on{color:var(--primary);border-bottom:3px solid var(--primary)}
+.screen{display:none}.screen.on{display:grid;gap:12px}
+.mode{display:flex;gap:8px}.mode button{flex:1;min-height:48px;border-radius:8px;border:2px solid var(--line);background:#fff;font-weight:800;cursor:pointer}
+.mode button.on{border-color:var(--primary);background:#dcfce7}
+.seclist{counter-reset:s}.seclist li{list-style:none;border:1px solid var(--line);border-radius:8px;padding:10px;margin:0 0 8px;background:#fff}
+.seclist{padding:0}.seclist li::before{counter-increment:s;content:counter(s) ". ";font-weight:800;color:var(--primary)}
+.test{border-left:4px solid var(--accent);background:#fffbeb;padding:10px 12px;font-size:13px}
+.printsheet{background:#fff;border:1px solid var(--line);padding:18px;font-family:Georgia,serif}
+.printsheet table{width:100%;border-collapse:collapse;font-size:12px} .printsheet td,.printsheet th{border:1px solid #999;padding:5px}
+</style>
+</head>
+<body>
+<header class="appbar">LessonPrep <span class="sub">· Stage 1 prototype — click through like the real app</span></header>
+<nav class="proto-tabs" aria-label="Prototype screens">
+<button class="on" data-s="home">1 · Home</button>
+<button data-s="create">2 · Create</button>
+<button data-s="lesson">3 · Lesson</button>
+<button data-s="lessons">4 · My Lessons</button>
+<button data-s="print">5 · Print</button>
+</nav>
+<main class="wrap">
+
+<!-- 1 HOME -->
+<section class="screen on" id="s-home">
+<div class="card"><b>Next lesson</b><br>JSS2A · Mathematics · Algebra · 40 min · Tomorrow 9:00</div>
+<div class="card"><b>Needs prep (2):</b> Fractions quiz · Photosynthesis draft</div>
+<div class="card"><b>Continue working:</b> Basic Science — Photosynthesis <i>(Draft, saved on this device)</i></div>
+<div class="card"><button class="btn-p" data-go="create">+ Quick Prep — “JSS2 Mathematics, Algebra”</button></div>
+<div class="test"><b>Teacher test Q1:</b> Without my help, point at what you would tap to start tomorrow's lesson. What do you expect to happen?</div>
+</section>
+
+<!-- 2 CREATE -->
+<section class="screen" id="s-create">
+<div class="card"><b>What are you teaching?</b><br><input id="topic" value="JSS2 Mathematics — Algebra" style="width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px"></div>
+<div class="card"><b>Start from</b><div class="mode" style="margin-top:8px"><button>Topic</button><button>Scheme</button><button>Textbook</button><button>Previous</button><button>Blank</button></div></div>
+<div class="card"><b>How much help?</b><div class="mode" style="margin-top:8px"><button class="on">Quick Prep</button><button>Standard</button><button>Deep Prep</button></div><p class="test" style="margin-top:8px">Missing info nudge (fake): “Class period and duration missing — keep defaults (40 min, Period 2)?” <button data-go="lesson">Use defaults &amp; draft →</button></p></div>
+<div class="test"><b>Teacher test Q2:</b> Which mode would you pick when you have 10 minutes? What does “Deep” promise you?</div>
+</section>
+
+<!-- 3 LESSON -->
+<section class="screen" id="s-lesson">
+<div class="card"><b>JSS2 Mathematics — Algebra</b> <span style="background:#fef9c3;padding:2px 8px;border-radius:999px;font-size:12px">Draft</span><br><span style="color:var(--muted);font-size:13px">The 18 Nigerian sections — tap any section to type (Stage 3 wires this up).</span></div>
+<ol class="seclist">
+<li>Date and Time — Tue 9:00, 40 min, Period 2</li>
+<li>Class — JSS2A</li>
+<li>Subject — Mathematics</li>
+<li>Topic — Algebra: like terms</li>
+<li>Duration — 40 min</li>
+<li>Period — 2</li>
+<li>Previous Knowledge — addition of whole numbers</li>
+<li>Aims &amp; Objectives — simplify basic expressions</li>
+<li>Introduction — market oranges: 3 + 2…</li>
+<li>Teacher Activities — demo 3x + 2x on board</li>
+<li>Student Activities — solve 5x + 4x on slates</li>
+<li>Teaching Methods — demonstration, Q&amp;A</li>
+<li>Teaching Aids — bottle caps (cheap, local)</li>
+<li>Teaching Content — definitions + 3 worked examples</li>
+<li>Evaluation — 3 questions matching objectives</li>
+<li>Conclusion — recap like terms</li>
+<li>Assignment — 4 take-home simplifications</li>
+<li>Summary — one-line board note</li>
+</ol>
+<div class="test"><b>Teacher test Q3:</b> Is any section named wrong for your school? Which would you remove or rename?</div>
+</section>
+
+<!-- 4 MY LESSONS -->
+<section class="screen" id="s-lessons">
+<div class="card">🔍 <input placeholder="Search: show my JSS2 algebra lessons…" style="width:80%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px"></div>
+<div class="card"><b>Algebra — like terms</b> · JSS2A · Draft · Tue<br><button data-go="lesson">Open</button> <button>Duplicate</button> <button data-go="print">Print</button></div>
+<div class="card"><b>Photosynthesis intro</b> · Basic Sci · Ready · Mon<br><button data-go="lesson">Open</button> <button>Duplicate</button> <button data-go="print">Print</button></div>
+<div class="test"><b>Teacher test Q4:</b> Find your algebra lesson and duplicate it. Did you trust which one is the draft?</div>
+</section>
+
+<!-- 5 PRINT -->
+<section class="screen" id="s-print">
+<div class="card"><b>Pick sections to print</b><br><label><input type="checkbox" checked> Objectives</label> <label><input type="checkbox" checked> Content</label> <label><input type="checkbox" checked> Activities</label> <label><input type="checkbox"> Private notes (never by default)</label></div>
+<div class="printsheet"><h4 style="text-align:center;margin:0">LESSON NOTE — JSS2 MATHEMATICS</h4><p style="text-align:center;font-size:12px">Algebra: like terms · 40 min · Period 2</p><table><tr><th>Section</th><th>Content</th></tr><tr><td>Objectives</td><td>Simplify basic expressions</td></tr><tr><td>Content</td><td>3 worked examples, misconceptions</td></tr><tr><td>Evaluation</td><td>3 questions ✓ match objectives</td></tr></table></div>
+<p><button class="btn-p" onclick="window.print()">Print / Save PDF</button></p>
+<div class="test"><b>Teacher test Q5:</b> Does this printout fit your normal school format? What is missing?</div>
+</section>
+
+<div class="card test"><b>How to run the test (5 teachers, 10 min each):</b> hand them this file, read Q1–Q5 aloud, write down where they hesitate. Pass = 4/5 finish without your help. Fix confusions here, not in code.</div>
+</main>
+<script>
+document.querySelectorAll(".proto-tabs button").forEach(b=>b.addEventListener("click",()=>{
+document.querySelectorAll(".proto-tabs button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
+document.getElementById("s-"+b.dataset.s).classList.add("on");window.scrollTo(0,0);}));
+document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{
+document.querySelector(`[data-s="${b.dataset.go}"]`).click();}));
+document.querySelectorAll(".mode").forEach(g=>g.addEventListener("click",e=>{
+if(e.target.tagName==="BUTTON"){g.querySelectorAll("button").forEach(x=>x.classList.remove("on"));e.target.classList.add("on");}}));
+</script>
+</body>
+</html>
