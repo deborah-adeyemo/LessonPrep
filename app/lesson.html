@@ -28,7 +28,7 @@
 <a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <select id="typeSel" style="min-height:40px"><option>New Lesson</option><option>Continuation</option><option>Revision</option><option>Remedial</option><option>Assessment</option><option>Test</option><option>Exam Prep</option><option>Practical</option><option>Activity-Based</option></select> <select id="statusSel" style="min-height:40px"><option>Draft</option><option>Ready</option></select><br><span id="saveState">Loading…</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
+<div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <select id="statusSel" style="min-height:40px"><option>Draft</option><option>Ready</option></select><br><span id="saveState">Loading…</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
 <div class="card no-print" id="aiCard"><h3>✨ AI assistant <span class="hint">(online only — your draft is never touched until you press Accept)</span></h3>
 <div class="ai-banner" id="aiBanner" style="display:none"></div>
 <div id="aiSetup" style="display:none">AI is not set up yet — <a href="profile.html">add your free proxy URL in Profile → AI settings</a>, or install Ollama for fully local AI.</div>
@@ -81,14 +81,11 @@ Mode: <select id="aiMode" style="min-height:48px"><option value="quick">Quick Pr
     var statusSel = document.getElementById("statusSel");
     statusSel.value = lesson.status || "Draft";
     statusSel.addEventListener("change", async function(){ lesson.status = statusSel.value; await LP.putLesson(lesson); });
-    var typeSel = document.getElementById("typeSel");
-    typeSel.value = lesson.ltype || "New Lesson";
-    typeSel.addEventListener("change", async function(){ lesson.ltype = typeSel.value; await LP.putLesson(lesson); });
     render(); renderChecks(); renderVersions(); renderNotes(); renderRefs(); aiStatus();
     var m = params.get("mode"); if (m) document.getElementById("aiMode").value = m;
     saveState.textContent = "Saved";
   }
-  function collect(){ lesson.topic = topicEl.value; lesson.status = document.getElementById("statusSel").value; lesson.ltype = document.getElementById("typeSel").value; lesson.sections = [];
+  function collect(){ lesson.topic = topicEl.value; lesson.status = document.getElementById("statusSel").value; lesson.sections = [];
     box.querySelectorAll(".sec").forEach(function(div){ lesson.sections.push({ title: div.querySelector(".t").value, body: div.querySelector("textarea").value }); });
   }
   function markDirty(){ saveState.textContent = "Editing…"; clearTimeout(timer); timer = setTimeout(async function(){ collect(); await LP.putLesson(lesson); var d = new Date(); saveState.textContent = "Saved " + d.toTimeString().slice(0,5); }, 400); }
