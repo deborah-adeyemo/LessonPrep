@@ -1,9 +1,16 @@
 :root{--primary:#14532d;--accent:#f59e0b;--ink:#1a1a1a;--muted:#6b7280;--line:#e5e7eb;--bg:#f8fafc;--card:#fff;--radius:8px}
 *{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
 .appbar{background:var(--primary);color:#fff;padding:12px 16px;font-weight:800}.appbar .sub{font-weight:400;font-size:12px;opacity:.8}
-.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line)}.tabs span{flex:1;text-align:center;padding:12px 4px;min-height:48px;font-size:13px;font-weight:700;color:var(--muted)}.tabs span.on{color:var(--primary);border-bottom:3px solid var(--primary)}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line)}.tabs a{flex:1;text-align:center;padding:12px 4px;min-height:48px;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none}.tabs a.on{color:var(--primary);border-bottom:3px solid var(--primary)}
 .wrap{max-width:720px;margin:0 auto;padding:16px;display:grid;gap:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
 .ok{background:#dcfce7;border-color:#14532d}
-.btn-p{background:var(--primary);color:#fff;border:0;border-radius:8px;min-height:48px;padding:0 18px;font-weight:800;cursor:pointer}
-@media print{.appbar,.tabs,.btn-p{display:none}}
+.btn-p{display:inline-block;background:var(--primary);color:#fff;border:0;border-radius:8px;min-height:48px;line-height:48px;padding:0 18px;font-weight:800;cursor:pointer;text-decoration:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.chips span{border:2px solid var(--line);border-radius:8px;padding:10px 14px;min-height:48px;font-weight:700;font-size:13px}.chips .sel{border-color:var(--primary);background:#dcfce7}
+.hint{font-size:13px;color:var(--muted)}
+.pill-draft{background:#fef9c3;color:#854d0e;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700}.pill-ready{background:#dcfce7;color:#166534;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700}.pill-not{background:#fee2e2;color:#991b1b;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700}
+.print-sheet{background:#fff;border:1px solid var(--line);padding:18px}.print-sheet h1{font-family:Georgia,serif;font-size:18px;text-align:center;margin:0}.print-sheet .center{text-align:center;font-size:13px;color:var(--muted)}.print-sheet ol{font-size:14px}.print-sheet li{margin-bottom:6px}
+@media print{
+.appbar,.tabs,.no-print,.btn-p{display:none !important}
+body{background:#fff}.wrap{max-width:100%;padding:0}.print-sheet{border:0;font-family:Georgia,serif}
+}
