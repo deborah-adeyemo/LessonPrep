@@ -17,6 +17,9 @@
     timetable: "++tid, day",
     reflections: "++rid, lessonId, updatedAt"
   });
+  db.version(3).stores({
+    photos: "++pid, lessonId"
+  });
 
   function uid(prefix) {
     return (prefix || "l") + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);

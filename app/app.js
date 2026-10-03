@@ -27,6 +27,8 @@
       await db().versions.where("lessonId").equals(id).delete();
       await db().annotations.where("lessonId").equals(id).delete();
       await db().collections.delete(id);
+      await db().reflections.where("lessonId").equals(id).delete();
+      if (db().photos) await db().photos.where("lessonId").equals(id).delete();
     },
     duplicateLesson: async function (id) {
       var src = await db().lessons.get(id);
@@ -87,6 +89,14 @@
     listAnnotations: function (lessonId) { return db().annotations.where("lessonId").equals(lessonId).toArray(); },
     addAnnotation: function (lessonId, text) { return db().annotations.put({ lessonId: lessonId, text: text, updatedAt: Date.now() }); },
     deleteAnnotation: function (aid) { return db().annotations.delete(aid); },
+
+    // ---- photos (offline attachments: schemes, textbook pages, notes) ----
+    listPhotos: function (lessonId) { return db().photos.where("lessonId").equals(lessonId).toArray(); },
+    addPhoto: function (lessonId, photo) {
+      if ((photo.dataUrl || "").length > 1500000) throw new Error("Photo too large even after shrinking. Try a closer crop.");
+      return db().photos.put({ lessonId: lessonId, kind: photo.kind || "other", name: photo.name || "photo", dataUrl: photo.dataUrl, updatedAt: Date.now() });
+    },
+    deletePhoto: function (pid) { return db().photos.delete(pid); },
 
     // ---- collections (favourites) ----
     isFav: async function (lessonId) { return !!(await db().collections.get(lessonId)); },
