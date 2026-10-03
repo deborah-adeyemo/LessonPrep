@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LessonPrep — Sign in</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14532d">
+<style>
+.auth{max-width:420px;margin:8vh auto;padding:24px}.auth h1{color:var(--primary);margin:0 0 4px}
+.auth label{display:block;margin:12px 0}.auth input{width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;font-size:16px;margin-top:4px}
+.err{background:#fee2e2;color:#991b1b;border-radius:8px;padding:10px;margin-top:12px;display:none}
+.logo{text-align:center;font-size:15px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main class="wrap"><div class="card auth">
+<p class="logo">📚 LessonPrep — your personal lesson assistant</p>
+<h1>Welcome back</h1>
+<p class="hint">Sign in to open your lessons. New here? <a href="signup.html"><b>Create account</b></a></p>
+<label>Email address or phone number<input id="f-id" autocomplete="username" placeholder="e.g. adaeze@example.com or 0803…"></label>
+<label>Password<input id="f-pw" type="password" autocomplete="current-password" placeholder="Your password"></label>
+<p><button class="btn-p" id="go" style="width:100%">Sign in</button></p>
+<div class="err" id="err"></div>
+<p class="hint">Everyone needs an account — your lessons stay private on your device.</p>
+</div></main>
+<script src="auth.js"></script>
+<script>
+(function(){
+  if (Auth.current()) { location.replace("index.html"); return; }
+  function fail(m){ var e = document.getElementById("err"); e.style.display = ""; e.textContent = m; }
+  async function go(){
+    var id = document.getElementById("f-id").value, pw = document.getElementById("f-pw").value;
+    if (!id.trim() || !pw) return fail("Enter your email/phone number and password.");
+    var btn = document.getElementById("go"); btn.disabled = true; btn.textContent = "Signing in…";
+    try { await Auth.login(id, pw); location.href = "index.html"; }
+    catch (e) { fail(e.message); btn.disabled = false; btn.textContent = "Sign in"; }
+  }
+  document.getElementById("go").addEventListener("click", go);
+  document.getElementById("f-pw").addEventListener("keydown", function(e){ if (e.key === "Enter") go(); });
+})();
+</script>
+</body>
+</html>
