@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LessonPrep — Term report</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14532d">
+<style>.stat{font-size:28px;font-weight:800;color:var(--primary)}.rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.rep-grid{grid-template-columns:1fr}}ul.tight{margin:6px 0;padding-left:20px;font-size:14px}</style>
+</head>
+<body>
+<header class="appbar no-print">LessonPrep</header>
+<nav class="tabs no-print" aria-label="Main">
+<a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
+</nav>
+<main class="wrap">
+<div class="card no-print"><b>My term report</b> <span class="hint">(private — computed on this device from your lessons, reflections and library)</span><br><br><button class="btn-p" onclick="window.print()">Print / Save PDF</button> <a href="index.html">← Home</a></div>
+<div class="print-sheet">
+<h1>TERM REPORT — PRIVATE</h1>
+<p class="center" id="r-who">Loading…</p>
+<div class="rep-grid">
+<div><span class="stat" id="r-prepared">–</span><br>lessons prepared</div>
+<div><span class="stat" id="r-ready">–</span><br>marked Ready</div>
+<div><span class="stat" id="r-unfinished">–</span><br>still drafts (unfinished)</div>
+<div><span class="stat" id="r-refl">–</span><br>post-lesson reflections</div>
+</div>
+<h3>By lesson type</h3><ul class="tight" id="r-types"></ul>
+<h3>Topics covered</h3><ul class="tight" id="r-topics"></ul>
+<h3>Frequently difficult (from your reflections)</h3><ul class="tight" id="r-hard"></ul>
+<h3>Reusable materials</h3><ul class="tight" id="r-reuse"></ul>
+</div>
+</main>
+<script src="auth.js"></script>
+<script src="vendor/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+LP.ready().then(async function(){
+  var me = Auth.current();
+  var lessons = await LP.getLessons();
+  var ready = lessons.filter(function(l){ return l.status === "Ready"; });
+  document.getElementById("r-who").textContent = (me ? me.firstName + " " + me.lastName + " · " : "") + new Date().toLocaleDateString() + " · " + lessons.length + " lessons in library";
+  document.getElementById("r-prepared").textContent = lessons.length;
+  document.getElementById("r-ready").textContent = ready.length;
+  document.getElementById("r-unfinished").textContent = lessons.length - ready.length;
+  var types = {};
+  lessons.forEach(function(l){ var t = l.ltype || "New Lesson"; types[t] = (types[t] || 0) + 1; });
+  document.getElementById("r-types").innerHTML = Object.keys(types).sort().map(function(t){ return "<li>" + t + ": <b>" + types[t] + "</b></li>"; }).join("") || "<li>—</li>";
+  function topicOf(l){
+    for (var i = 0; i < (l.sections || []).length; i++) if (AI_norm(l.sections[i].title) === "topic" && l.sections[i].body.trim()) return l.sections[i].body.trim();
+    return l.topic;
+  }
+  function AI_norm(t){ return t.toLowerCase().replace(/[^a-z ]/g,"").trim(); }
+  var seen = {};
+  document.getElementById("r-topics").innerHTML = lessons.map(function(l){
+    var t = topicOf(l); if (seen[t]) return ""; seen[t] = 1;
+    return "<li>" + t + "</li>";
+  }).join("") || "<li>—</li>";
+  var hard = {};
+  for (var i = 0; i < lessons.length; i++) {
+    var refs = await LP.listReflections(lessons[i].id);
+    refs.forEach(function(r){ if (r.struggles && r.struggles.trim()) hard[r.struggles.trim()] = (hard[r.struggles.trim()] || 0) + 1; });
+  }
+  var hardKeys = Object.keys(hard).sort(function(a,b){ return hard[b] - hard[a]; });
+  document.getElementById("r-hard").innerHTML = hardKeys.slice(0,10).map(function(k){ return "<li>" + k + (hard[k] > 1 ? " (×" + hard[k] + ")" : "") + "</li>"; }).join("") || "<li>No struggles recorded yet.</li>";
+  var ts = await LP.listTemplates(), qs = await LP.listQuestions();
+  var favs = 0;
+  for (var j = 0; j < lessons.length; j++) if (await LP.isFav(lessons[j].id)) favs++;
+  document.getElementById("r-reuse").innerHTML = "<li>" + ts.length + " saved templates</li><li>" + qs.length + " banked questions</li><li>" + favs + " favourite lessons</li>";
+  var allRefs = 0;
+  for (var k = 0; k < lessons.length; k++) allRefs += (await LP.listReflections(lessons[k].id)).length;
+  document.getElementById("r-refl").textContent = allRefs;
+});
+</script>
+</body>
+</html>
