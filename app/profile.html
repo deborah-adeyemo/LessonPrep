@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LessonPrep — Profile</title>
 <link rel="stylesheet" href="styles.css">
+<style>label{display:block;margin-bottom:10px}input,select{width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;margin-top:4px;font-size:15px}</style>
 </head>
 <body>
 <header class="appbar">LessonPrep</header>
@@ -12,9 +13,31 @@
 <a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a class="on" href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<div class="card"><b>Teacher</b><br>Name: Adaeze O. (example)<br>Classes: JSS2A, JSS1B · Subjects: Mathematics, Basic Science</div>
-<div class="card"><b>Lesson-note preferences</b><br>Detail: Standard · Aids: cheap/local only · Evaluation: 3 questions<br><span class="hint">Saving arrives in Stage 3 (localStorage).</span></div>
-<div class="card"><b>Timetable (preview)</b><br>Mon P2 — JSS2A Maths · Tue P2 — JSS2A Maths · Wed P1 — JSS1B Basic Sci<br><span class="hint">Editable timetable arrives in Stage 5.</span></div>
+<div class="card"><b>My teaching profile</b> <span class="hint">(saved on this device)</span>
+<label>Name <input id="f-name" placeholder="e.g. Adaeze O."></label>
+<label>Classes (comma separated) <input id="f-classes" placeholder="JSS2A, JSS1B"></label>
+<label>Subjects (comma separated) <input id="f-subjects" placeholder="Mathematics, Basic Science"></label>
+<label>Detail level <select id="f-detail"><option>Quick</option><option selected>Standard</option><option>Detailed</option></select></label>
+<label>Teaching aids rule <input id="f-aids"></label>
+<label>Evaluation style <input id="f-eval"></label>
+<p><button class="btn-p" id="save">Save profile</button> <span id="msg" class="hint"></span></p>
+</div>
 </main>
+<script src="app.js"></script>
+<script>
+(function(){
+  var p = LP.getProfile();
+  document.getElementById("f-name").value = p.name;
+  document.getElementById("f-classes").value = p.classes;
+  document.getElementById("f-subjects").value = p.subjects;
+  document.getElementById("f-detail").value = p.detail;
+  document.getElementById("f-aids").value = p.aids;
+  document.getElementById("f-eval").value = p.evaluation;
+  document.getElementById("save").addEventListener("click", function(){
+    LP.saveProfile({ name: document.getElementById("f-name").value, classes: document.getElementById("f-classes").value, subjects: document.getElementById("f-subjects").value, detail: document.getElementById("f-detail").value, aids: document.getElementById("f-aids").value, evaluation: document.getElementById("f-eval").value });
+    document.getElementById("msg").textContent = "Saved ✓";
+  });
+})();
+</script>
 </body>
 </html>

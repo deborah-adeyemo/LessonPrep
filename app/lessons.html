@@ -12,10 +12,29 @@
 <a href="index.html">Home</a><a href="create.html">Create</a><a class="on" href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<div class="card">🔍 <input placeholder="Search lessons… (wired in Stage 4)" style="width:80%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px"></div>
-<div class="card"><b><a href="lesson.html">Algebra — like terms</a></b> · JSS2A · <span class="pill-draft">Draft</span> · Tue<br><a href="lesson.html">Open</a> · Duplicate (Stage 3) · <a href="lesson.html">Print</a></div>
-<div class="card"><b><a href="lesson.html">Photosynthesis intro</a></b> · Basic Sci · <span class="pill-ready">Ready</span> · Mon<br><a href="lesson.html">Open</a> · Duplicate (Stage 3) · <a href="lesson.html">Print</a></div>
-<div class="card"><b>Fractions quiz</b> · JSS1 · <span class="pill-not">Not started</span> · Fri</div>
+<p><a class="btn-p" href="create.html">+ New lesson</a></p>
+<div id="list" class="wrap" style="padding:0"></div>
 </main>
+<script src="app.js"></script>
+<script>
+(function(){
+  var box = document.getElementById("list");
+  function render(){
+    var lessons = LP.getLessons();
+    box.innerHTML = lessons.length ? "" : '<div class="card">No lessons yet — <a href="create.html">create one</a>.</div>';
+    lessons.forEach(function(l){
+      var d = document.createElement("div"); d.className = "card";
+      var date = new Date(l.updatedAt); var when = date.toLocaleDateString() + " " + date.toTimeString().slice(0,5);
+      d.innerHTML = "<b></b> · <span class='pill-draft'>" + l.status + "</span> · " + when +
+        "<br><a href='lesson.html?id=" + l.id + "'>Open</a> · <button data-dup>Duplicate</button> · <button data-del>Delete</button>";
+      d.querySelector("b").textContent = l.topic;
+      d.querySelector("[data-dup]").addEventListener("click", function(){ LP.duplicateLesson(l.id); render(); });
+      d.querySelector("[data-del]").addEventListener("click", function(){ if (confirm("Delete '" + l.topic + "'?")) { LP.deleteLesson(l.id); render(); } });
+      box.appendChild(d);
+    });
+  }
+  render();
+})();
+</script>
 </body>
 </html>

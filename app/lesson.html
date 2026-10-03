@@ -3,8 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LessonPrep — JSS2 Algebra</title>
+<title>LessonPrep — Lesson editor</title>
 <link rel="stylesheet" href="styles.css">
+<style>
+.sec{border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff;margin-bottom:8px}
+.sec input.t{width:100%;font-weight:800;border:1px solid transparent;border-radius:6px;padding:6px;font-size:15px}
+.sec input.t:hover{border-color:var(--line)}
+.sec textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:6px;padding:8px;font-family:inherit;font-size:14px;margin-top:6px}
+.sec .row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.sec .row button{min-height:40px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:0 10px;cursor:pointer;font-size:12px}
+.checks label{display:block;padding:8px;border-bottom:1px dashed var(--line);font-size:14px}
+#saveState{font-size:13px;color:var(--muted)}
+</style>
 </head>
 <body>
 <header class="appbar no-print">LessonPrep</header>
@@ -12,32 +22,76 @@
 <a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<div class="card no-print"><b>JSS2 Mathematics — Algebra: like terms</b> <span class="pill-draft">Draft</span><br><span class="hint">Static skeleton — editing arrives in Stage 3. Print this page to check the school format.</span></div>
-<div class="print-sheet">
-<h1>LESSON NOTE — JSS2 MATHEMATICS</h1>
-<p class="center">Algebra: like terms · Tuesday 9:00 · 40 min · Period 2 · JSS2A</p>
-<ol>
-<li><b>Date and Time</b> — Tuesday 9:00, 40 minutes, Period 2</li>
-<li><b>Class</b> — JSS2A</li>
-<li><b>Subject</b> — Mathematics</li>
-<li><b>Topic</b> — Algebra: like terms</li>
-<li><b>Duration</b> — 40 minutes</li>
-<li><b>Period</b> — 2</li>
-<li><b>Previous Knowledge</b> — Pupils can add whole numbers.</li>
-<li><b>Aims &amp; Objectives</b> — By the end, pupils simplify basic algebraic expressions.</li>
-<li><b>Introduction</b> — Market oranges: 3 oranges + 2 oranges…</li>
-<li><b>Teacher Activities</b> — Demonstrate 3x + 2x on the board.</li>
-<li><b>Student Activities</b> — Solve 5x + 4x on slates in pairs.</li>
-<li><b>Teaching Methods</b> — Demonstration, question and answer.</li>
-<li><b>Teaching Aids</b> — Bottle caps (cheap, local).</li>
-<li><b>Teaching Content</b> — Definitions, 3 worked examples, common mistakes.</li>
-<li><b>Evaluation</b> — 3 questions, each matched to an objective.</li>
-<li><b>Conclusion</b> — Recap: only like terms combine.</li>
-<li><b>Assignment</b> — 4 take-home simplifications.</li>
-<li><b>Summary</b> — One-line board note for copying.</li>
-</ol>
-</div>
-<p class="no-print"><button class="btn-p" onclick="window.print()">Print / Save PDF</button> <a href="lessons.html">← Back to lessons</a></p>
+<div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <span class="pill-draft" id="status">Draft</span><br><span id="saveState">Saved</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
+<div id="sections"></div>
+<div class="card no-print"><button class="btn-p" id="addSec">+ Add section</button>
+<h3>Quality checklist (tick as you verify)</h3>
+<div class="checks" id="checks">
+<label><input type="checkbox" data-k="obj"> Objectives written in plain words</label>
+<label><input type="checkbox" data-k="eval"> Evaluation questions match the objectives</label>
+<label><input type="checkbox" data-k="time"> Activities fit the duration</label>
+<label><input type="checkbox" data-k="aids"> Teaching aids are cheap and local</label>
+<label><input type="checkbox" data-k="assign"> Assignment covers only what was taught</label>
+</div></div>
 </main>
+<script src="app.js"></script>
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var id = params.get("id");
+  var lesson = id ? LP.getLesson(id) : null;
+  if (!lesson) { lesson = LP.newLesson(params.get("topic") || "Untitled lesson"); history.replaceState(null,"","lesson.html?id="+lesson.id); }
+  var topicEl = document.getElementById("topic");
+  var box = document.getElementById("sections");
+  var saveState = document.getElementById("saveState");
+  topicEl.value = lesson.topic;
+  var timer = null;
+  function markDirty(){ saveState.textContent = "Editing…"; clearTimeout(timer); timer = setTimeout(save, 400); }
+  function save(){
+    lesson.topic = topicEl.value;
+    lesson.sections = [];
+    box.querySelectorAll(".sec").forEach(function(div){
+      lesson.sections.push({ title: div.querySelector(".t").value, body: div.querySelector("textarea").value });
+    });
+    lesson.updatedAt = Date.now();
+    LP.putLesson(lesson);
+    var d = new Date(); saveState.textContent = "Saved " + d.toTimeString().slice(0,5);
+  }
+  function render(){
+    box.innerHTML = "";
+    lesson.sections.forEach(function(s, i){
+      var div = document.createElement("div"); div.className = "sec";
+      div.innerHTML = '<input class="t" value=""><textarea></textarea><div class="row"><button data-a="up">↑</button><button data-a="dn">↓</button><button data-a="ren">Rename</button><button data-a="rm">Remove</button></div>';
+      div.querySelector(".t").value = s.title;
+      div.querySelector("textarea").value = s.body;
+      div.querySelector(".t").addEventListener("input", markDirty);
+      div.querySelector("textarea").addEventListener("input", markDirty);
+      div.querySelectorAll("button").forEach(function(b){ b.addEventListener("click", function(){
+        var a = b.dataset.a, arr = lesson.sections;
+        if (a === "up" && i > 0) { var t = arr[i-1]; arr[i-1] = arr[i]; arr[i] = t; }
+        if (a === "dn" && i < arr.length-1) { var u = arr[i+1]; arr[i+1] = arr[i]; arr[i] = u; }
+        if (a === "rm" && confirm("Remove section '" + arr[i].title + "'?")) arr.splice(i,1);
+        if (a === "ren") { var n = prompt("Section name:", arr[i].title); if (n) arr[i].title = n; }
+        lesson.sections = arr; LP.putLesson(lesson); render(); markDirty();
+      });});
+      box.appendChild(div);
+    });
+  }
+  document.getElementById("addSec").addEventListener("click", function(){
+    var n = prompt("New section name:", "New section"); if (!n) return;
+    lesson.sections.push({ title: n, body: "" }); LP.putLesson(lesson); render(); markDirty();
+  });
+  topicEl.addEventListener("input", markDirty);
+  document.getElementById("printBtn").addEventListener("click", function(){ save(); window.print(); });
+  document.getElementById("delBtn").addEventListener("click", function(){
+    if (confirm("Delete this lesson?")) { LP.deleteLesson(lesson.id); location.href = "lessons.html"; }
+  });
+  // checklist persists per lesson
+  var checks = document.getElementById("checks");
+  var saved = lesson.checks || {};
+  checks.querySelectorAll("input").forEach(function(c){ c.checked = !!saved[c.dataset.k]; c.addEventListener("change", function(){ lesson.checks = lesson.checks || {}; lesson.checks[c.dataset.k] = c.checked; LP.putLesson(lesson); }); });
+  render();
+})();
+</script>
 </body>
 </html>
