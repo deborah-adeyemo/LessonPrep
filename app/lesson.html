@@ -15,6 +15,9 @@
 .checks label{display:block;padding:8px;border-bottom:1px dashed var(--line);font-size:14px}
 #saveState{font-size:13px;color:var(--muted)}
 .ver,.note-item{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;background:#fff;font-size:14px}
+.ai-box{background:#fffbeb;border:2px dashed var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;font-size:14px}
+.ai-box textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:6px;padding:8px;font-family:inherit;font-size:14px;margin-top:6px}
+.ai-banner{background:#fef3c7;border:1px solid var(--accent);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -24,6 +27,15 @@
 </nav>
 <main class="wrap">
 <div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <select id="statusSel" style="min-height:40px"><option>Draft</option><option>Ready</option></select><br><span id="saveState">Loading…</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
+<div class="card no-print" id="aiCard"><h3>✨ AI assistant <span class="hint">(online only — your draft is never touched until you press Accept)</span></h3>
+<div class="ai-banner" id="aiBanner" style="display:none"></div>
+<div id="aiSetup" style="display:none">AI is not set up yet — <a href="profile.html">add your free proxy URL in Profile → AI settings</a>, or install Ollama for fully local AI.</div>
+<div id="aiControls">
+Mode: <select id="aiMode" style="min-height:48px"><option value="quick">Quick Prep</option><option value="standard" selected>Standard Prep</option><option value="deep">Deep Prep</option></select>
+<input id="aiInstr" placeholder="Instruction — e.g. simpler, Nigerian examples, cheap aids" style="width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;margin:6px 0">
+<br><button class="btn-p" id="aiFull">Generate full lesson</button> <span class="hint">fills empty sections; suggestions for the rest</span>
+</div>
+<div id="aiOut" style="margin-top:8px"></div></div>
 <div id="sections"></div>
 <div class="card no-print"><button class="btn-p" id="addSec">+ Add section</button> <button id="tplBtn">Save as template</button>
 <h3>Quality checklist (tick as you verify)</h3>
@@ -49,6 +61,7 @@
 <script src="vendor/dexie.min.js"></script>
 <script src="db.js"></script>
 <script src="app.js"></script>
+<script src="ai.js"></script>
 <script>
 (function(){
   var params = new URLSearchParams(location.search);
@@ -65,7 +78,8 @@
     var statusSel = document.getElementById("statusSel");
     statusSel.value = lesson.status || "Draft";
     statusSel.addEventListener("change", async function(){ lesson.status = statusSel.value; await LP.putLesson(lesson); });
-    render(); renderChecks(); renderVersions(); renderNotes(); renderRefs();
+    render(); renderChecks(); renderVersions(); renderNotes(); renderRefs(); aiStatus();
+    var m = params.get("mode"); if (m) document.getElementById("aiMode").value = m;
     saveState.textContent = "Saved";
   }
   function collect(){ lesson.topic = topicEl.value; lesson.status = document.getElementById("statusSel").value; lesson.sections = [];
@@ -76,7 +90,7 @@
     box.innerHTML = "";
     lesson.sections.forEach(function(s, i){
       var div = document.createElement("div"); div.className = "sec";
-      div.innerHTML = '<input class="t" value=""><textarea></textarea><div class="row"><button data-a="up">↑</button><button data-a="dn">↓</button><button data-a="ren">Rename</button><button data-a="rm">Remove</button></div>';
+      div.innerHTML = '<input class="t" value=""><textarea></textarea><div class="row"><button data-a="up">↑</button><button data-a="dn">↓</button><button data-a="ai">✨ Section help</button><button data-a="ren">Rename</button><button data-a="rm">Remove</button></div>';
       div.querySelector(".t").value = s.title; div.querySelector("textarea").value = s.body;
       div.querySelector(".t").addEventListener("input", markDirty);
       div.querySelector("textarea").addEventListener("input", markDirty);
@@ -86,6 +100,7 @@
         if (a === "dn" && i < arr.length-1) { var u = arr[i+1]; arr[i+1] = arr[i]; arr[i] = u; }
         if (a === "rm" && confirm("Remove section '" + arr[i].title + "'?")) arr.splice(i,1);
         if (a === "ren") { var n = prompt("Section name:", arr[i].title); if (n) arr[i].title = n; }
+        if (a === "ai") { genSection(i); return; }
         lesson.sections = arr; await LP.putLesson(lesson); render(); markDirty();
       });});
       box.appendChild(div);
@@ -172,6 +187,84 @@
   document.getElementById("delBtn").addEventListener("click", async function(){
     if (confirm("Delete this lesson?")) { await LP.deleteLesson(lesson.id); location.href = "lessons.html"; }
   });
+  // ---------- AI (Stage 6): suggestions only, teacher decides ----------
+  function aiContext(){
+    var p = LP.getProfile() || {};
+    function find(name){ for (var i = 0; i < lesson.sections.length; i++) if (AI.norm(lesson.sections[i].title) === AI.norm(name)) return lesson.sections[i].body; return ""; }
+    return { className: find("Class"), subject: find("Subject"), topic: find("Topic") || lesson.topic, detail: p.detail || "Standard", aids: p.aids || "cheap/local only" };
+  }
+  function aiStatus(){
+    var banner = document.getElementById("aiBanner"), setup = document.getElementById("aiSetup"), ctrls = document.getElementById("aiControls");
+    banner.style.display = "none"; setup.style.display = "none"; ctrls.style.display = "";
+    if (!AI.online()) { banner.style.display = ""; banner.textContent = "⚠ Offline — AI paused. You can keep writing, saving & printing."; ctrls.style.display = "none"; return false; }
+    if (!AI.configured()) { setup.style.display = ""; ctrls.style.display = "none"; return false; }
+    return true;
+  }
+  function suggestionBox(title, text, onAccept){
+    var out = document.getElementById("aiOut");
+    var div = document.createElement("div"); div.className = "ai-box";
+    div.innerHTML = "<b></b> <span class='hint'>AI suggestion — review before accepting</span><p class='body'></p>";
+    div.querySelector("b").textContent = title;
+    div.querySelector(".body").textContent = text;
+    var row = document.createElement("p");
+    var acc = document.createElement("button"); acc.className = "btn-p"; acc.textContent = "Accept";
+    var edt = document.createElement("button"); edt.textContent = "Edit";
+    var dis = document.createElement("button"); dis.textContent = "Discard";
+    acc.addEventListener("click", function(){ onAccept(text); div.remove(); });
+    edt.addEventListener("click", function(){
+      div.querySelector(".body").innerHTML = "";
+      var ta = document.createElement("textarea"); ta.value = text; div.querySelector(".body").appendChild(ta);
+      edt.textContent = "Use edited"; edt.onclick = function(){ onAccept(ta.value); div.remove(); };
+    });
+    dis.addEventListener("click", function(){ div.remove(); });
+    row.appendChild(acc); row.appendChild(document.createTextNode(" ")); row.appendChild(edt); row.appendChild(document.createTextNode(" ")); row.appendChild(dis);
+    div.appendChild(row); out.prepend(div);
+    div.scrollIntoView();
+  }
+  function readSectionBody(i){ return box.querySelectorAll(".sec")[i].querySelector("textarea").value; }
+  function writeSectionBody(i, text){ box.querySelectorAll(".sec")[i].querySelector("textarea").value = text; markDirty(); }
+  async function genSection(i){
+    if (!aiStatus()) return;
+    collect();
+    var btn = event && event.target; var old = btn ? btn.textContent : "";
+    try {
+      if (btn) btn.textContent = "…";
+      var res = await AI.generate({ mode: document.getElementById("aiMode").value, section: lesson.sections[i].title, context: aiContext(), instruction: document.getElementById("aiInstr").value.trim() });
+      suggestionBox(lesson.sections[i].title, res.text, function(t){ writeSectionBody(i, t); });
+    } catch (e) { alert(aiErr(e)); }
+    finally { if (btn) btn.textContent = old; }
+  }
+  function aiErr(e){
+    if (e.message === "offline") return "AI needs internet — your draft is safe. Keep writing manually.";
+    if (e.message === "not-configured") return "AI not set up — see Profile → AI settings.";
+    return "AI error: " + e.message;
+  }
+  document.getElementById("aiFull").addEventListener("click", async function(){
+    if (!aiStatus()) return;
+    collect();
+    var btn = this; btn.textContent = "Generating…"; btn.disabled = true;
+    try {
+      var res = await AI.generate({ mode: document.getElementById("aiMode").value, section: null, context: aiContext(), instruction: document.getElementById("aiInstr").value.trim() });
+      var parts = AI.parseSections(res.text);
+      if (!parts.length) { suggestionBox("Full lesson (unparsed)", res.text, function(){ }); return; }
+      var filled = 0, suggested = 0;
+      collect();
+      parts.forEach(function(p){
+        for (var i = 0; i < lesson.sections.length; i++) {
+          if (AI.norm(lesson.sections[i].title) === AI.norm(p.title)) {
+            if (!lesson.sections[i].body.trim()) { lesson.sections[i].body = p.body; filled++; }
+            else { (function (idx, txt, ttl) { suggestionBox(ttl + " (alternative)", txt, function(t){ writeSectionBody(idx, t); }); })(i, p.body, p.title); suggested++; }
+            break;
+          }
+        }
+      });
+      await LP.putLesson(lesson); render();
+      saveState.textContent = "AI filled " + filled + " empty section(s), " + suggested + " suggestion(s) to review";
+    } catch (e) { alert(aiErr(e)); }
+    finally { btn.textContent = "Generate full lesson"; btn.disabled = false; }
+  });
+  window.addEventListener("online", aiStatus);
+  window.addEventListener("offline", aiStatus);
   init();
 })();
 </script>

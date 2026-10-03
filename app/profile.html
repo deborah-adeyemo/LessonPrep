@@ -22,10 +22,16 @@
 <label>Evaluation style <input id="f-eval"></label>
 <p><button class="btn-p" id="save">Save profile</button> <span id="msg" class="hint"></span></p>
 </div>
+<div class="card"><b>AI settings</b> <span class="hint">(optional, online only — manual work always available)</span>
+<label>Provider <select id="ai-provider"><option value="gemini">Gemini free tier (via my Worker proxy)</option><option value="ollama">Ollama local (no key, on this machine)</option></select></label>
+<label>Endpoint <input id="ai-endpoint" placeholder=https://my-proxy.workers.dev  or  http://localhost:11434"></label>
+<p><button id="ai-save">Save AI settings</button> <button id="ai-test">Test connection</button> <span id="ai-msg" class="hint"></span></p>
+<p class="hint">Get a free Gemini key at aistudio.google.com, paste it as a GOOGLE_API_KEY secret in your Worker (see workers/ai-proxy.js header). Your key never leaves the Worker.</p></div>
 </main>
 <script src="vendor/dexie.min.js"></script>
 <script src="db.js"></script>
 <script src="app.js"></script>
+<script src="ai.js"></script>
 <script>
 LP.ready().then(function(){
   var p = LP.getProfile() || window.LP_DEFAULT_PROFILE;
@@ -38,6 +44,21 @@ LP.ready().then(function(){
   document.getElementById("save").addEventListener("click", function(){
     LP.saveProfile({ name: document.getElementById("f-name").value, classes: document.getElementById("f-classes").value, subjects: document.getElementById("f-subjects").value, detail: document.getElementById("f-detail").value, aids: document.getElementById("f-aids").value, evaluation: document.getElementById("f-eval").value });
     document.getElementById("msg").textContent = "Saved ✓";
+  });
+  var aiCfg = AI.getConfig();
+  document.getElementById("ai-provider").value = aiCfg.provider;
+  document.getElementById("ai-endpoint").value = aiCfg.endpoint;
+  document.getElementById("ai-save").addEventListener("click", function(){
+    AI.saveConfig({ provider: document.getElementById("ai-provider").value, endpoint: document.getElementById("ai-endpoint").value.trim() });
+    document.getElementById("ai-msg").textContent = "AI settings saved ✓";
+  });
+  document.getElementById("ai-test").addEventListener("click", async function(){
+    AI.saveConfig({ provider: document.getElementById("ai-provider").value, endpoint: document.getElementById("ai-endpoint").value.trim() });
+    var msg = document.getElementById("ai-msg"); msg.textContent = "Testing…";
+    try {
+      var r = await AI.generate({ mode: "quick", section: "Introduction", context: { className: "JSS2A", subject: "Mathematics", topic: "Algebra test" }, instruction: "Reply with exactly: AI OK" });
+      msg.textContent = "✓ AI reachable (" + r.ms + "ms): " + r.text.slice(0, 80);
+    } catch (e) { msg.textContent = "✗ " + e.message + (e.message === "not-configured" ? " — paste your Worker URL above." : e.message === "offline" ? " — connect to the internet." : ""); }
   });
 });
 </script>
