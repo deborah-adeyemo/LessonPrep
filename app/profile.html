@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LessonPrep — Profile</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14532d">
 <style>label{display:block;margin-bottom:10px}input,select{width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;margin-top:4px;font-size:15px}</style>
 </head>
 <body>
@@ -27,6 +29,9 @@
 <label>Endpoint <input id="ai-endpoint" placeholder=https://my-proxy.workers.dev  or  http://localhost:11434"></label>
 <p><button id="ai-save">Save AI settings</button> <button id="ai-test">Test connection</button> <span id="ai-msg" class="hint"></span></p>
 <p class="hint">Get a free Gemini key at aistudio.google.com, paste it as a GOOGLE_API_KEY secret in your Worker (see workers/ai-proxy.js header). Your key never leaves the Worker.</p></div>
+<div class="card"><b>Backup (your whole library as one file)</b>
+<p><button id="bk-export">⬇ Export backup</button> <input type="file" id="bk-file" accept=".json"> <button id="bk-import">⬆ Import backup</button> <span id="bk-msg" class="hint"></span></p>
+<p class="hint">Keep the file somewhere safe (email it to yourself). Import replaces everything on this device.</p></div>
 </main>
 <script src="vendor/dexie.min.js"></script>
 <script src="db.js"></script>
@@ -59,6 +64,23 @@ LP.ready().then(function(){
       var r = await AI.generate({ mode: "quick", section: "Introduction", context: { className: "JSS2A", subject: "Mathematics", topic: "Algebra test" }, instruction: "Reply with exactly: AI OK" });
       msg.textContent = "✓ AI reachable (" + r.ms + "ms): " + r.text.slice(0, 80);
     } catch (e) { msg.textContent = "✗ " + e.message + (e.message === "not-configured" ? " — paste your Worker URL above." : e.message === "offline" ? " — connect to the internet." : ""); }
+  });
+  document.getElementById("bk-export").addEventListener("click", async function(){
+    var dump = await LP_BACKUP.exportAll();
+    var blob = new Blob([JSON.stringify(dump)], { type: "application/json" });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "lessonprep-backup-" + new Date().toISOString().slice(0,10) + ".json"; a.click();
+    document.getElementById("bk-msg").textContent = "Exported ✓";
+  });
+  document.getElementById("bk-import").addEventListener("click", async function(){
+    var f = document.getElementById("bk-file").files[0]; if (!f) return alert("Choose a backup file first.");
+    try {
+      var dump = JSON.parse(await f.text());
+      if (!confirm("Replace everything on this device with this backup?")) return;
+      await LP_BACKUP.importAll(dump);
+      document.getElementById("bk-msg").textContent = "Imported ✓ — reloading…";
+      setTimeout(function(){ location.reload(); }, 800);
+    } catch (e) { alert("Import failed: " + e.message); }
   });
 });
 </script>

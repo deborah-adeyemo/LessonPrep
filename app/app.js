@@ -143,4 +143,31 @@
   };
   // defaults merged by pages
   window.LP_DEFAULT_PROFILE = { name: "", classes: "", subjects: "", detail: "Standard", aids: "cheap/local only", evaluation: "3 questions" };
+
+  // ---- Stage 7: installable shell + backup ----
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+  }
+  window.LP_BACKUP = {
+    exportAll: async function () {
+      await window.LPDB.migrateOnce();
+      var t = window.LPDB.db.tables;
+      var dump = { app: "lessonprep", v: 1, exportedAt: Date.now(), tables: {} };
+      for (var i = 0; i < t.length; i++) dump.tables[t[i].name] = await t[i].toArray();
+      try { dump.profile = JSON.parse(localStorage.getItem("lp_profile")) || null; } catch (e) { dump.profile = null; }
+      try { dump.ai = JSON.parse(localStorage.getItem("lp_ai_config")) || null; } catch (e) { dump.ai = null; }
+      return dump;
+    },
+    importAll: async function (dump) {
+      if (!dump || dump.app !== "lessonprep" || !dump.tables) throw new Error("Not a LessonPrep backup file.");
+      var db = window.LPDB.db;
+      await db.transaction("rw", db.tables, async function () {
+        for (var name in dump.tables) {
+          if (db[name]) { await db[name].clear(); await db[name].bulkPut(dump.tables[name]); }
+        }
+      });
+      if (dump.profile) try { localStorage.setItem("lp_profile", JSON.stringify(dump.profile)); } catch (e) {}
+      if (dump.ai) try { localStorage.setItem("lp_ai_config", JSON.stringify(dump.ai)); } catch (e) {}
+    }
+  };
 })();
