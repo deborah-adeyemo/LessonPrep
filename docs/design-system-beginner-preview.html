@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LessonPrep — Beginner Plan System Design (Web-First)</title>
+<style>
+:root{--primary:#14532d;--accent:#f59e0b;--accent-bg:#fffbeb;--ink:#1a1a1a;--muted:#6b7280;--line:#e5e7eb;--bg:#f8fafc;--card:#fff;--radius:8px}
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1080px;margin:0 auto;padding:24px}
+.hero{background:#0f172a;color:#fff;border-radius:12px;padding:28px}
+.hero small{letter-spacing:.08em;text-transform:uppercase;opacity:.7}
+.hero h1{margin:6px 0 8px;font-size:30px}.hero p{opacity:.9;max-width:72ch}
+h2{margin:32px 0 12px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:800px){.g2,.g3{grid-template-columns:1fr}}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.box{flex:1;min-width:150px;border:2px solid var(--line);border-radius:8px;padding:12px;background:#fff;font-size:13px}
+.box b{display:block;margin-bottom:4px}.box.free{border-color:var(--primary)}
+.box small{color:var(--muted)}.arrow{align-self:center;font-size:20px;color:var(--muted)}
+.tag{display:inline-block;font-size:11px;font-weight:800;background:#dcfce7;color:#14532d;border-radius:999px;padding:2px 8px;margin:2px}
+.tag.amber{background:#fef3c7;color:#92400e}.tag.grey{background:#f1f5f9;color:#475569}
+.sw{height:56px;border-radius:8px;display:flex;align-items:flex-end;padding:8px;color:#fff;font-size:12px;font-weight:700}
+.phone{border:10px solid #111;border-radius:28px;overflow:hidden;background:#fff;max-width:360px}
+.appbar{background:var(--primary);color:#fff;padding:12px 16px;font-weight:800}
+.tabs{display:flex;border-bottom:1px solid var(--line)}.tabs span{flex:1;text-align:center;padding:10px 4px;font-size:12px;color:var(--muted);font-weight:700}.tabs span.on{color:var(--primary);border-bottom:3px solid var(--primary)}
+.screen{padding:14px;display:grid;gap:10px}
+.btn{display:inline-block;min-height:48px;line-height:48px;padding:0 18px;border-radius:8px;font-weight:800;border:0}
+.btn-p{background:var(--primary);color:#fff}.btn-a{background:var(--accent)}
+.ai{background:var(--accent-bg);border:2px dashed var(--accent);border-radius:8px;padding:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{border:1px solid var(--line);padding:8px;text-align:left}th{background:#f1f5f9}
+code{background:#f1f5f9;padding:1px 6px;border-radius:4px}.note{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hero">
+<small>Beginner plan · web-first PWA · free tools only</small>
+<h1>LessonPrep Beginner System Design — visual</h1>
+<p>Same teacher-owned product, gentler road: one language (JavaScript), everything free, website first that installs like an app. <b>Green = your code &amp; teacher data. Amber = AI suggestions only.</b></p>
+</div>
+
+<h2>1 · System map — where everything lives</h2>
+<div class="card">
+<div class="flow">
+<div class="box free"><b>📱 Teacher browser (PWA)</b><small>HTML + CSS + JavaScript + Vite. 5 pages. Works offline. <span class="tag">FREE</span></small></div>
+<div class="arrow">→</div>
+<div class="box free"><b>🗄️ Dexie.js + IndexedDB</b><small>Filing cabinet inside the browser: lessons, versions, templates, schemes, questions, reflections. No internet needed. <span class="tag">FREE</span></small></div>
+<div class="arrow">→</div>
+<div class="box free"><b>🖨️ Browser print → PDF</b><small>Nigerian 18-section layout via print CSS. No library. <span class="tag">FREE</span></small></div>
+</div>
+<p style="margin-top:12px"><b>Online only (never blocking):</b></p>
+<div class="flow">
+<div class="box"><b>Browser</b><small>asks for help: "generate only the introduction"</small></div>
+<div class="arrow">→</div>
+<div class="box free"><b>🔑 Tiny proxy</b><small>Cloudflare Workers / Supabase Edge / Firebase Functions — hides your AI key, caps cost. <span class="tag">FREE TIER</span></small></div>
+<div class="arrow">→</div>
+<div class="box"><b>✨ Gemini free tier</b><small>(alt: Hugging Face free, Groq free, Ollama local). Returns amber suggestion box. <span class="tag amber">AI — needs review</span></small></div>
+</div>
+<p class="note">Hosting: GitHub Pages / Netlify / Vercel free. Editor: VS Code free. Drawings: Figma free / Penpot free. Backup later: Supabase free / PocketBase free.</p>
+</div>
+
+<h2>2 · Tokens — same identity, web defaults</h2>
+<div class="grid g3">
+<div><div class="sw" style="background:#14532d">Primary 14532D</div><div class="card">Buttons, active tab, headers. System font to start (zero installs).</div></div>
+<div><div class="sw" style="background:#f59e0b;color:#422006">Accent F59E0B</div><div class="card">AI boxes only — dashed border, always with Accept / Edit / Discard.</div></div>
+<div><div class="sw" style="background:#0f172a">Ink + neutrals</div><div class="card">Radius 8px · 48px targets · print swaps to Georgia serif.</div></div>
+</div>
+
+<h2>3 · App shell — 5 pages (works offline)</h2>
+<div class="grid g2">
+<div class="phone"><div class="appbar">LessonPrep <span style="font-weight:400;font-size:12px">· web</span></div><div class="tabs"><span class="on">Home</span><span>Create</span><span>Lessons</span><span>Resources</span><span>Profile</span></div>
+<div class="screen">
+<div class="card" style="padding:10px"><b>Next:</b> JSS2A · Algebra · 40 min <span class="tag">READY</span></div>
+<div class="card" style="padding:10px"><b>Continue:</b> Photosynthesis <span class="tag grey">DRAFT · saved on this device</span></div>
+<button class="btn btn-p">+ Quick Prep (offline OK)</button>
+<div class="card" style="padding:10px">🔍 Search lessons… <span class="tag">local</span></div>
+</div></div>
+<div class="card"><h3>How data flows (beginner words)</h3><p>Type → <code>Save</code> → Dexie store <code>lessons</code> → appears in My Lessons + Home. No account, no server. Versions = named snapshots (draft / final / used) with Restore.</p><p>Reflection after teaching ("reached example 3") → <code>Use in next lesson</code> copies it forward. That is the continuity loop.</p></div>
+</div>
+
+<h2>4 · AI pattern — amber box, teacher decides</h2>
+<div class="ai"><b>Suggested introduction</b> <span class="tag amber">AI · Gemini free tier</span><p>"Start with market oranges: 3 + 2…"</p><p><button class="btn btn-a">Accept</button> <button class="btn">Edit</button> <button class="btn">Discard</button></p><p class="note">Offline? Banner says "AI needs internet — keep writing manually." Your draft is never touched until you press Accept.</p></div>
+
+<h2>5 · Tool → feature map (why each exists)</h2>
+<table>
+<tr><th>Free tool</th><th>Builds which feature</th><th>If you outgrow it</th></tr>
+<tr><td>VS Code</td><td>All code</td><td>VSCodium</td></tr>
+<tr><td>HTML + CSS</td><td>5 pages, Nigerian print layout</td><td>Tailwind later</td></tr>
+<tr><td>JavaScript</td><td>Editor, templates, search, timetable</td><td>TypeScript</td></tr>
+<tr><td>Dexie.js + IndexedDB</td><td>Lessons, versions, question bank, resources — offline</td><td>Supabase / PocketBase</td></tr>
+<tr><td>Vite PWA plugin</td><td>Installable + offline shell</td><td>Hand-written worker</td></tr>
+<tr><td>Gemini free / HF free</td><td>Quick / Standard / Deep + per-section regen</td><td>Ollama local, paid tier</td></tr>
+<tr><td>Workers / Edge free</td><td>Key safety + cost caps</td><td>Any of the three</td></tr>
+<tr><td>Pages / Netlify / Vercel free</td><td>Shareable test link</td><td>Cloudflare Pages</td></tr>
+</table>
+
+<p class="note" style="margin-top:24px">File: <code>docs/design-system-beginner-preview.html</code> · companion: <code>docs/IMPLEMENTATION_PLAN_BEGINNER.md</code> · advanced road kept in <code>docs/IMPLEMENTATION_PLAN.md</code>. Open this file in any browser.</p>
+</div>
+</body>
+</html>
