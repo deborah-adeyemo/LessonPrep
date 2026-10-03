@@ -23,7 +23,7 @@
 <a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <span class="pill-draft" id="status">Draft</span><br><span id="saveState">Loading…</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
+<div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <select id="statusSel" style="min-height:40px"><option>Draft</option><option>Ready</option></select><br><span id="saveState">Loading…</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
 <div id="sections"></div>
 <div class="card no-print"><button class="btn-p" id="addSec">+ Add section</button> <button id="tplBtn">Save as template</button>
 <h3>Quality checklist (tick as you verify)</h3>
@@ -34,6 +34,12 @@
 <label><input type="checkbox" data-k="aids"> Teaching aids are cheap and local</label>
 <label><input type="checkbox" data-k="assign"> Assignment covers only what was taught</label>
 </div></div>
+<div class="card no-print"><h3>Post-lesson reflection (private — feeds the next lesson)</h3>
+<div id="refs"></div>
+<p><input id="r-reached" placeholder="Where did we stop? e.g. We reached example 3" style="width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;margin-bottom:6px">
+<input id="r-struggles" placeholder="What did pupils struggle with?" style="width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;margin-bottom:6px">
+<input id="r-carry" placeholder="Carry into next lesson (goes to Previous Knowledge)" style="width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;margin-bottom:6px"></p>
+<p><button id="r-save">Save reflection</button> <button id="r-next">Save + start next lesson →</button></p></div>
 <div class="card no-print"><h3>Versions (snapshots — restore any time)</h3>
 <p><button id="snapBtn">📸 Save snapshot</button></p><div id="versions"></div></div>
 <div class="card no-print"><h3>Private annotations (never print)</h3>
@@ -56,10 +62,13 @@
     lesson = id ? await LP.getLesson(id) : null;
     if (!lesson) { lesson = await LP.newLesson(params.get("topic") || "Untitled lesson", params.get("tpl")); history.replaceState(null,"","lesson.html?id="+lesson.id); }
     topicEl.value = lesson.topic;
-    render(); renderChecks(); renderVersions(); renderNotes();
+    var statusSel = document.getElementById("statusSel");
+    statusSel.value = lesson.status || "Draft";
+    statusSel.addEventListener("change", async function(){ lesson.status = statusSel.value; await LP.putLesson(lesson); });
+    render(); renderChecks(); renderVersions(); renderNotes(); renderRefs();
     saveState.textContent = "Saved";
   }
-  function collect(){ lesson.topic = topicEl.value; lesson.sections = [];
+  function collect(){ lesson.topic = topicEl.value; lesson.status = document.getElementById("statusSel").value; lesson.sections = [];
     box.querySelectorAll(".sec").forEach(function(div){ lesson.sections.push({ title: div.querySelector(".t").value, body: div.querySelector("textarea").value }); });
   }
   function markDirty(){ saveState.textContent = "Editing…"; clearTimeout(timer); timer = setTimeout(async function(){ collect(); await LP.putLesson(lesson); var d = new Date(); saveState.textContent = "Saved " + d.toTimeString().slice(0,5); }, 400); }
@@ -111,6 +120,35 @@
       b.addEventListener("click", async function(){ await LP.deleteAnnotation(n.aid); renderNotes(); });
       d.appendChild(b); el.appendChild(d);
     });
+  }
+  async function renderRefs(){
+    var refs = await LP.listReflections(lesson.id);
+    var el = document.getElementById("refs"); el.innerHTML = refs.length ? "" : "<span class='hint'>No reflections yet — after teaching, record what happened.</span>";
+    refs.forEach(function(r){
+      var d = document.createElement("div"); d.className = "note-item";
+      d.textContent = "Stopped: " + r.reached + " · Struggles: " + r.struggles + " · Carry: " + r.carry + " ";
+      var b = document.createElement("button"); b.textContent = "Delete";
+      b.addEventListener("click", async function(){ await LP.deleteReflection(r.rid); renderRefs(); });
+      d.appendChild(b); el.appendChild(d);
+    });
+  }
+  async function saveReflection(){
+    var r = { reached: document.getElementById("r-reached").value.trim(), struggles: document.getElementById("r-struggles").value.trim(), carry: document.getElementById("r-carry").value.trim() };
+    if (!r.reached && !r.struggles && !r.carry) return alert("Write at least one field.");
+    await LP.addReflection(lesson.id, r);
+    document.getElementById("r-reached").value = ""; document.getElementById("r-struggles").value = ""; document.getElementById("r-carry").value = "";
+    renderRefs();
+  }
+  document.getElementById("r-save").addEventListener("click", saveReflection);
+  document.getElementById("r-next").addEventListener("click", async function(){
+    await saveReflectionIfFilled();
+    collect(); await LP.putLesson(lesson);
+    var next = await LP.startNextLesson(lesson.id);
+    location.href = "lesson.html?id=" + next.id;
+  });
+  async function saveReflectionIfFilled(){
+    var r = { reached: document.getElementById("r-reached").value.trim(), struggles: document.getElementById("r-struggles").value.trim(), carry: document.getElementById("r-carry").value.trim() };
+    if (r.reached || r.struggles || r.carry) { await LP.addReflection(lesson.id, r); }
   }
   document.getElementById("addSec").addEventListener("click", async function(){
     var n = prompt("New section name:", "New section"); if (!n) return;

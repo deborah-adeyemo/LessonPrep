@@ -97,6 +97,44 @@
       return !existing;
     },
 
+    // ---- timetable: {day 0=Mon..6=Sun, time, className, subject, topic} ----
+    listTimetable: function () { return db().timetable.toArray(); },
+    addTimetable: function (e) { return db().timetable.put(e); },
+    deleteTimetable: function (tid) { return db().timetable.delete(tid); },
+    nextEntry: async function () {
+      var all = await db().timetable.toArray();
+      if (!all.length) return null;
+      var today = (new Date().getDay() + 6) % 7; // Mon=0
+      all.sort(function (a, b) { return (a.day - today + 7) % 7 - ((b.day - today + 7) % 7) || (a.time < b.time ? -1 : 1); });
+      return all[0];
+    },
+
+    // ---- reflections: {lessonId, reached, struggles, carry, updatedAt} ----
+    listReflections: function (lessonId) { return db().reflections.where("lessonId").equals(lessonId).reverse().sortBy("updatedAt"); },
+    addReflection: function (lessonId, r) { return db().reflections.put({ lessonId: lessonId, reached: r.reached || "", struggles: r.struggles || "", carry: r.carry || "", updatedAt: Date.now() }); },
+    deleteReflection: function (rid) { return db().reflections.delete(rid); },
+    lastCarryForward: async function () {
+      var all = await db().reflections.orderBy("updatedAt").reverse().limit(5).toArray();
+      for (var i = 0; i < all.length; i++) if (all[i].carry) return all[i];
+      return null;
+    },
+    startNextLesson: async function (fromLessonId) {
+      var src = await db().lessons.get(fromLessonId);
+      var refs = await db().reflections.where("lessonId").equals(fromLessonId).reverse().sortBy("updatedAt");
+      var carry = refs.length ? refs[0].carry : "";
+      var lesson = {
+        id: window.LPDB.uid(), topic: (src ? src.topic + " — continued" : "Continued lesson"),
+        status: "Draft", updatedAt: Date.now(), sections: window.LPDB.blankSections()
+      };
+      if (carry) {
+        for (var i = 0; i < lesson.sections.length; i++) {
+          if (lesson.sections[i].title === "Previous Knowledge") lesson.sections[i].body = carry;
+        }
+      }
+      await db().lessons.put(lesson);
+      return lesson;
+    },
+
     // ---- profile (small: stays in localStorage) ----
     getProfile: function () {
       try { return JSON.parse(localStorage.getItem("lp_profile")) || null; } catch (e) { return null; }

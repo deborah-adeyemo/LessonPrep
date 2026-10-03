@@ -12,9 +12,10 @@
 <a class="on" href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<div class="card"><b>Next lesson</b><br>JSS2A · Mathematics · Algebra · 40 min · Tomorrow 9:00</div>
-<div class="card"><b>Needs prep (2)</b><br>Fractions quiz · Photosynthesis draft</div>
+<div class="card"><b>Next lesson</b><br><span id="next">Loading…</span><br><a href="timetable.html">Edit timetable →</a></div>
+<div class="card"><b>Needs prep</b><br><span id="needs">Loading…</span></div>
 <div class="card"><b>Continue working</b><br><span id="cont">Loading…</span></div>
+<div class="card"><b>Carry-forward</b><br><span id="carry">Loading…</span></div>
 <p><a class="btn-p" href="create.html">+ Quick Prep</a></p>
 <div class="card"><b>Recent</b><br><span id="recent">Loading…</span></div>
 <div class="card"><b>Library</b><br><span id="lib">Loading…</span></div>
@@ -24,13 +25,22 @@
 <script src="app.js"></script>
 <script>
 LP.ready().then(async function(){
+  var DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  var entry = await LP.nextEntry();
+  document.getElementById("next").innerHTML = entry
+    ? DAYS[entry.day] + " " + entry.time + " · " + entry.className + " · " + entry.subject + (entry.topic ? " · " + entry.topic : "")
+    : "No timetable yet — <a href='timetable.html'>add your periods</a>.";
   var lessons = await LP.getLessons();
+  var drafts = lessons.filter(function(l){ return l.status !== "Ready"; });
+  document.getElementById("needs").textContent = drafts.length ? drafts.length + " lesson(s) still drafts" : "All lessons marked Ready ✓";
   document.getElementById("cont").innerHTML = lessons.length
     ? "<a href='lesson.html?id=" + lessons[0].id + "'>" + lessons[0].topic + "</a> (" + lessons[0].status + ")"
     : "Nothing yet — <a href='create.html'>start your first lesson</a>.";
   document.getElementById("recent").innerHTML = lessons.length
     ? lessons.slice(0,3).map(function(l){ return "<a href='lesson.html?id=" + l.id + "'>" + l.topic + "</a>"; }).join("<br>")
     : "—";
+  var carry = await LP.lastCarryForward();
+  document.getElementById("carry").textContent = carry ? carry.carry + "  (from " + new Date(carry.updatedAt).toLocaleDateString() + ")" : "No reflections yet — teach, reflect, and notes appear here.";
   var qs = await LP.listQuestions(), ts = await LP.listTemplates();
   document.getElementById("lib").textContent = lessons.length + " lessons · " + qs.length + " questions · " + ts.length + " templates (all on this device, offline OK)";
 });

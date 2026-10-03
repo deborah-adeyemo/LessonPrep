@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LessonPrep — Timetable</title>
+<link rel="stylesheet" href="styles.css">
+<style>input,select{border:1px solid var(--line);border-radius:8px;padding:10px;min-height:48px;font-size:14px;margin:2px}table{width:100%;border-collapse:collapse;font-size:14px}td,th{border:1px solid var(--line);padding:8px;text-align:left}th{background:#f1f5f9}</style>
+</head>
+<body>
+<header class="appbar">LessonPrep</header>
+<nav class="tabs" aria-label="Main">
+<a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
+</nav>
+<main class="wrap">
+<div class="card"><b>My weekly timetable</b> <span class="hint">(on this device — drives Home's "Next lesson")</span>
+<p><select id="f-day"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select>
+<input id="f-time" placeholder="09:00" style="width:90px"> <input id="f-class" placeholder="Class e.g. JSS2A" style="width:130px"> <input id="f-subj" placeholder="Subject" style="width:130px"></p>
+<p><input id="f-topic" placeholder="Topic (optional)" style="width:70%"> <button id="add">Add</button></p></div>
+<div class="card"><table><tr><th>Day</th><th>Time</th><th>Class</th><th>Subject / topic</th><th></th></tr><tbody id="rows"></tbody></table></div>
+<p><a href="index.html">← Back Home</a></p>
+</main>
+<script src="vendor/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+(function(){
+  var DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  async function render(){
+    await LP.ready();
+    var rows = document.getElementById("rows"); rows.innerHTML = "";
+    var all = await LP.listTimetable();
+    all.sort(function(a,b){ return a.day - b.day || (a.time < b.time ? -1 : 1); });
+    if (!all.length) rows.innerHTML = "<tr><td colspan='5' class='hint'>Empty — add your first period above. Example: Tue 09:00 JSS2A Mathematics.</td></tr>";
+    all.forEach(function(e){
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + DAYS[e.day] + "</td><td>" + e.time + "</td><td>" + e.className + "</td><td>" + e.subject + (e.topic ? " · " + e.topic : "") + "</td>";
+      var td = document.createElement("td"); var b = document.createElement("button"); b.textContent = "Delete";
+      b.addEventListener("click", async function(){ await LP.deleteTimetable(e.tid); render(); });
+      td.appendChild(b); tr.appendChild(td); rows.appendChild(tr);
+    });
+  }
+  document.getElementById("add").addEventListener("click", async function(){
+    var time = document.getElementById("f-time").value.trim() || "09:00";
+    var cls = document.getElementById("f-class").value.trim(), subj = document.getElementById("f-subj").value.trim();
+    if (!cls || !subj) return alert("Class and subject are required.");
+    await LP.addTimetable({ day: Number(document.getElementById("f-day").value), time: time, className: cls, subject: subj, topic: document.getElementById("f-topic").value.trim() });
+    document.getElementById("f-class").value = ""; document.getElementById("f-subj").value = ""; document.getElementById("f-topic").value = "";
+    render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>
