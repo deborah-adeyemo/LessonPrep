@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LessonPrep — Resources</title>
 <link rel="stylesheet" href="styles.css">
+<style>input,textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;margin:4px 0}textarea{min-height:70px;font-family:inherit}.item{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;background:#fff;font-size:14px;white-space:pre-wrap}</style>
 </head>
 <body>
 <header class="appbar">LessonPrep</header>
@@ -12,11 +13,64 @@
 <a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a class="on" href="resources.html">Resources</a><a href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<div class="card"><b>Schemes of work</b><br>JSS2 Mathematics — Term 2, weeks 1–12 (pasted text in Stage 4)<br><span class="hint">Photo upload arrives later; structure is ready for it.</span></div>
-<div class="card"><b>Textbooks</b><br>New General Maths JSS2 · Ch. 4 Algebra (p. 42)</div>
-<div class="card"><b>Question bank</b><br>Simplify 3x + 2x · JSS2 · Algebra · easy<br>Simplify 5a − 2a + 3 · JSS2 · Algebra · medium</div>
-<div class="card"><b>Teaching aids</b><br>Bottle caps · Flashcards · Wall chart (all low-cost, local)</div>
-<div class="card"><b>My templates</b><br>Standard 18-section note · Quick 8-section note</div>
+<div class="card"><h3>Schemes of work</h3>
+<input id="s-title" placeholder="Title — e.g. JSS2 Maths Term 2">
+<textarea id="s-body" placeholder="Paste or type the scheme here…"></textarea>
+<p><button id="s-add">Add scheme</button></p><div id="s-list"></div></div>
+<div class="card"><h3>Question bank</h3>
+<input id="qq-topic" placeholder="Topic — e.g. Algebra">
+<select id="qq-diff"><option>easy</option><option>medium</option><option>hard</option></select>
+<input id="qq-body" placeholder="Question text">
+<p><button id="qq-add">Add question</button></p><div id="qq-list"></div></div>
+<div class="card"><h3>Templates</h3><div id="t-list"></div>
+<p class="hint">Save templates from any lesson (Save as template button). Use one on the Create page.</p></div>
+<div class="card"><h3>Teaching aids (low-cost)</h3>
+<input id="a-title" placeholder="Aid — e.g. Bottle caps">
+<p><button id="a-add">Add aid</button></p><div id="a-list"></div></div>
 </main>
+<script src="vendor/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+(function(){
+  async function init(){
+    await LP.ready(); renderAll();
+    document.getElementById("s-add").addEventListener("click", async function(){
+      var t = document.getElementById("s-title").value.trim(), b = document.getElementById("s-body").value.trim();
+      if (!t) return alert("Give the scheme a title.");
+      await LP.addScheme(t, b); document.getElementById("s-title").value = ""; document.getElementById("s-body").value = ""; renderAll();
+    });
+    document.getElementById("qq-add").addEventListener("click", async function(){
+      var body = document.getElementById("qq-body").value.trim(); if (!body) return alert("Type the question.");
+      await LP.addQuestion({ topic: document.getElementById("qq-topic").value.trim() || "General", difficulty: document.getElementById("qq-diff").value, body: body });
+      document.getElementById("qq-body").value = ""; renderAll();
+    });
+    document.getElementById("a-add").addEventListener("click", async function(){
+      var t = document.getElementById("a-title").value.trim(); if (!t) return;
+      await LP.addResource("aid", t, ""); document.getElementById("a-title").value = ""; renderAll();
+    });
+  }
+  function item(el, text, onCopy, onDel){
+    var d = document.createElement("div"); d.className = "item"; d.textContent = text + " ";
+    if (onCopy) { var c = document.createElement("button"); c.textContent = "Copy"; c.addEventListener("click", onCopy); d.appendChild(c); d.appendChild(document.createTextNode(" ")); }
+    var b = document.createElement("button"); b.textContent = "Delete"; b.addEventListener("click", onDel); d.appendChild(b);
+    el.appendChild(d);
+  }
+  async function renderAll(){
+    var sl = document.getElementById("s-list"); sl.innerHTML = "";
+    (await LP.listSchemes()).forEach(function(s){ item(sl, s.title + "\n" + (s.body || ""), function(){ navigator.clipboard && navigator.clipboard.writeText(s.body || ""); }, async function(){ await LP.deleteScheme(s.sid); renderAll(); }); });
+    if (!sl.innerHTML) sl.innerHTML = "<span class='hint'>No schemes yet.</span>";
+    var ql = document.getElementById("qq-list"); ql.innerHTML = "";
+    (await LP.listQuestions()).forEach(function(q){ item(ql, "[" + q.difficulty + "] " + q.topic + ": " + q.body, function(){ navigator.clipboard && navigator.clipboard.writeText(q.body); }, async function(){ await LP.deleteQuestion(q.qid); renderAll(); }); });
+    if (!ql.innerHTML) ql.innerHTML = "<span class='hint'>No questions yet.</span>";
+    var tl = document.getElementById("t-list"); tl.innerHTML = "";
+    (await LP.listTemplates()).forEach(function(t){ item(tl, t.name + " (" + t.sections.length + " sections)", null, async function(){ if (confirm("Delete template '" + t.name + "'?")) { await LP.deleteTemplate(t.tid); renderAll(); } }); });
+    var al = document.getElementById("a-list"); al.innerHTML = "";
+    (await LP.listResources("aid")).forEach(function(r){ item(al, r.title, null, async function(){ await LP.deleteResource(r.rid); renderAll(); }); });
+    if (!al.innerHTML) al.innerHTML = "<span class='hint'>No aids yet.</span>";
+  }
+  init();
+})();
+</script>
 </body>
 </html>

@@ -23,10 +23,12 @@
 <p><button class="btn-p" id="save">Save profile</button> <span id="msg" class="hint"></span></p>
 </div>
 </main>
+<script src="vendor/dexie.min.js"></script>
+<script src="db.js"></script>
 <script src="app.js"></script>
 <script>
-(function(){
-  var p = LP.getProfile();
+LP.ready().then(function(){
+  var p = LP.getProfile() || window.LP_DEFAULT_PROFILE;
   document.getElementById("f-name").value = p.name;
   document.getElementById("f-classes").value = p.classes;
   document.getElementById("f-subjects").value = p.subjects;
@@ -37,7 +39,7 @@
     LP.saveProfile({ name: document.getElementById("f-name").value, classes: document.getElementById("f-classes").value, subjects: document.getElementById("f-subjects").value, detail: document.getElementById("f-detail").value, aids: document.getElementById("f-aids").value, evaluation: document.getElementById("f-eval").value });
     document.getElementById("msg").textContent = "Saved ✓";
   });
-})();
+});
 </script>
 </body>
 </html>

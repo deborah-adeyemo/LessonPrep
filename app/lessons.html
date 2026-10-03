@@ -12,27 +12,40 @@
 <a href="index.html">Home</a><a href="create.html">Create</a><a class="on" href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<p><a class="btn-p" href="create.html">+ New lesson</a></p>
+<div class="card">🔍 <input id="q" placeholder="Search lessons, topics, content…" style="width:80%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px"></div>
+<p><a class="btn-p" href="create.html">+ New lesson</a> <button id="favFilter">★ Favourites only</button></p>
 <div id="list" class="wrap" style="padding:0"></div>
 </main>
+<script src="vendor/dexie.min.js"></script>
+<script src="db.js"></script>
 <script src="app.js"></script>
 <script>
 (function(){
-  var box = document.getElementById("list");
-  function render(){
-    var lessons = LP.getLessons();
-    box.innerHTML = lessons.length ? "" : '<div class="card">No lessons yet — <a href="create.html">create one</a>.</div>';
-    lessons.forEach(function(l){
+  var box = document.getElementById("list"), q = document.getElementById("q");
+  var favOnly = false, timer = null;
+  async function render(){
+    await LP.ready();
+    var lessons = await LP.searchLessons(q.value);
+    box.innerHTML = lessons.length ? "" : '<div class="card">No matches — <a href="create.html">create one</a>.</div>';
+    for (var i = 0; i < lessons.length; i++) {
+      var l = lessons[i];
+      if (favOnly && !(await LP.isFav(l.id))) continue;
       var d = document.createElement("div"); d.className = "card";
-      var date = new Date(l.updatedAt); var when = date.toLocaleDateString() + " " + date.toTimeString().slice(0,5);
-      d.innerHTML = "<b></b> · <span class='pill-draft'>" + l.status + "</span> · " + when +
-        "<br><a href='lesson.html?id=" + l.id + "'>Open</a> · <button data-dup>Duplicate</button> · <button data-del>Delete</button>";
+      var fav = await LP.isFav(l.id);
+      var date = new Date(l.updatedAt);
+      d.innerHTML = "<b></b> · <span class='pill-draft'>" + l.status + "</span> · " + date.toLocaleDateString() +
+        "<br><a href='lesson.html?id=" + l.id + "'>Open</a> · <button data-dup>Duplicate</button> · <button data-del>Delete</button> · <button data-fav>" + (fav ? "★ Unfavourite" : "☆ Favourite") + "</button>";
       d.querySelector("b").textContent = l.topic;
-      d.querySelector("[data-dup]").addEventListener("click", function(){ LP.duplicateLesson(l.id); render(); });
-      d.querySelector("[data-del]").addEventListener("click", function(){ if (confirm("Delete '" + l.topic + "'?")) { LP.deleteLesson(l.id); render(); } });
+      (function (lesson) {
+        d.querySelector("[data-dup]").addEventListener("click", async function(){ await LP.duplicateLesson(lesson.id); render(); });
+        d.querySelector("[data-del]").addEventListener("click", async function(){ if (confirm("Delete '" + lesson.topic + "'?")) { await LP.deleteLesson(lesson.id); render(); } });
+        d.querySelector("[data-fav]").addEventListener("click", async function(){ await LP.toggleFav(lesson.id); render(); });
+      })(l);
       box.appendChild(d);
-    });
+    }
   }
+  q.addEventListener("input", function(){ clearTimeout(timer); timer = setTimeout(render, 250); });
+  document.getElementById("favFilter").addEventListener("click", function(e){ favOnly = !favOnly; e.target.textContent = favOnly ? "★ Showing favourites" : "★ Favourites only"; render(); });
   render();
 })();
 </script>

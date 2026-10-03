@@ -17,18 +17,23 @@
 <div class="card"><b>Continue working</b><br><span id="cont">Loading…</span></div>
 <p><a class="btn-p" href="create.html">+ Quick Prep</a></p>
 <div class="card"><b>Recent</b><br><span id="recent">Loading…</span></div>
+<div class="card"><b>Library</b><br><span id="lib">Loading…</span></div>
 </main>
+<script src="vendor/dexie.min.js"></script>
+<script src="db.js"></script>
 <script src="app.js"></script>
 <script>
-(function(){
-  var lessons = LP.getLessons();
+LP.ready().then(async function(){
+  var lessons = await LP.getLessons();
   document.getElementById("cont").innerHTML = lessons.length
     ? "<a href='lesson.html?id=" + lessons[0].id + "'>" + lessons[0].topic + "</a> (" + lessons[0].status + ")"
     : "Nothing yet — <a href='create.html'>start your first lesson</a>.";
   document.getElementById("recent").innerHTML = lessons.length
     ? lessons.slice(0,3).map(function(l){ return "<a href='lesson.html?id=" + l.id + "'>" + l.topic + "</a>"; }).join("<br>")
     : "—";
-})();
+  var qs = await LP.listQuestions(), ts = await LP.listTemplates();
+  document.getElementById("lib").textContent = lessons.length + " lessons · " + qs.length + " questions · " + ts.length + " templates (all on this device, offline OK)";
+});
 </script>
 </body>
 </html>

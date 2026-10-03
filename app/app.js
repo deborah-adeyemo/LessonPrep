@@ -1,112 +1,108 @@
-/* LessonPrep Stage 3 — shared localStorage store (no database yet).
-   Keys: lp_lessons (array), lp_profile (object).
-   Stage 4 will swap these helpers for Dexie/IndexedDB without changing page code. */
+/* LessonPrep Stage 4 — async data API over IndexedDB (via db.js).
+   Same LP shape as Stage 3, now promise-based + versions, templates,
+   schemes, questions, resources, annotations, collections, search. */
 (function () {
-  var LESSONS_KEY = "lp_lessons";
-  var PROFILE_KEY = "lp_profile";
+  var db = function () { return window.LPDB.db; };
 
-  var SECTION_TITLES = [
-    "Date and Time", "Class", "Subject", "Topic", "Duration", "Period",
-    "Previous Knowledge", "Aims & Objectives", "Introduction",
-    "Teacher Activities", "Student Activities", "Teaching Methods",
-    "Teaching Aids", "Teaching Content", "Evaluation",
-    "Conclusion", "Assignment", "Summary"
-  ];
-
-  function uid() {
-    return "l" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
-  }
-  function read(key, fallback) {
-    try {
-      var raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch (e) { return fallback; }
-  }
-  function write(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-  function blankSections() {
-    return SECTION_TITLES.map(function (t) { return { title: t, body: "" }; });
-  }
-  function seedLessons() {
-    var lessons = read(LESSONS_KEY, null);
-    if (lessons !== null) return lessons;
-    lessons = [{
-      id: uid(),
-      topic: "JSS2 Mathematics — Algebra: like terms",
-      status: "Draft",
-      updatedAt: Date.now(),
-      sections: [
-        { title: "Date and Time", body: "Tuesday 9:00, 40 minutes, Period 2" },
-        { title: "Class", body: "JSS2A" },
-        { title: "Subject", body: "Mathematics" },
-        { title: "Topic", body: "Algebra: like terms" },
-        { title: "Duration", body: "40 minutes" },
-        { title: "Period", body: "2" },
-        { title: "Previous Knowledge", body: "Pupils can add whole numbers." },
-        { title: "Aims & Objectives", body: "By the end, pupils simplify basic algebraic expressions." },
-        { title: "Introduction", body: "Market oranges: 3 oranges + 2 oranges…" },
-        { title: "Teacher Activities", body: "Demonstrate 3x + 2x on the board." },
-        { title: "Student Activities", body: "Solve 5x + 4x on slates in pairs." },
-        { title: "Teaching Methods", body: "Demonstration, question and answer." },
-        { title: "Teaching Aids", body: "Bottle caps (cheap, local)." },
-        { title: "Teaching Content", body: "Definitions, 3 worked examples, common mistakes." },
-        { title: "Evaluation", body: "3 questions, each matched to an objective." },
-        { title: "Conclusion", body: "Recap: only like terms combine." },
-        { title: "Assignment", body: "4 take-home simplifications." },
-        { title: "Summary", body: "One-line board note for copying." }
-      ]
-    }];
-    write(LESSONS_KEY, lessons);
-    return lessons;
+  async function searchLessons(q) {
+    q = (q || "").trim().toLowerCase();
+    var all = await db().lessons.orderBy("updatedAt").reverse().toArray();
+    if (!q) return all;
+    return all.filter(function (l) {
+      var hay = (l.topic + " " + l.sections.map(function (s) { return s.title + " " + s.body; }).join(" ")).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
   }
 
   window.LP = {
-    getLessons: function () { return seedLessons(); },
-    saveLessons: function (lessons) { write(LESSONS_KEY, lessons); },
-    getLesson: function (id) {
-      var lessons = seedLessons();
-      for (var i = 0; i < lessons.length; i++) if (lessons[i].id === id) return lessons[i];
-      return null;
+    ready: function () { return window.LPDB.migrateOnce(); },
+
+    // ---- lessons ----
+    getLessons: function () { return db().lessons.orderBy("updatedAt").reverse().toArray(); },
+    searchLessons: searchLessons,
+    getLesson: function (id) { return db().lessons.get(id); },
+    putLesson: function (lesson) { lesson.updatedAt = Date.now(); return db().lessons.put(lesson); },
+    deleteLesson: async function (id) {
+      await db().lessons.delete(id);
+      await db().versions.where("lessonId").equals(id).delete();
+      await db().annotations.where("lessonId").equals(id).delete();
+      await db().collections.delete(id);
     },
-    putLesson: function (lesson) {
-      var lessons = seedLessons();
-      var found = false;
-      for (var i = 0; i < lessons.length; i++) {
-        if (lessons[i].id === lesson.id) { lessons[i] = lesson; found = true; break; }
-      }
-      if (!found) lessons.unshift(lesson);
-      write(LESSONS_KEY, lessons);
-    },
-    deleteLesson: function (id) {
-      write(LESSONS_KEY, seedLessons().filter(function (l) { return l.id !== id; }));
-    },
-    duplicateLesson: function (id) {
-      var src = this.getLesson(id);
+    duplicateLesson: async function (id) {
+      var src = await db().lessons.get(id);
       if (!src) return null;
       var copy = JSON.parse(JSON.stringify(src));
-      copy.id = uid();
-      copy.topic = src.topic + " (copy)";
-      copy.status = "Draft";
-      copy.updatedAt = Date.now();
-      this.putLesson(copy);
+      copy.id = window.LPDB.uid(); copy.topic = src.topic + " (copy)";
+      copy.status = "Draft"; copy.updatedAt = Date.now();
+      await db().lessons.put(copy);
       return copy;
     },
-    newLesson: function (topic) {
-      var lesson = {
-        id: uid(), topic: topic || "Untitled lesson",
-        status: "Draft", updatedAt: Date.now(), sections: blankSections()
-      };
-      // Pre-fill Topic section when the title looks like "Class Subject — Topic".
+    newLesson: async function (topic, templateId) {
+      var sections = window.LPDB.blankSections();
+      if (templateId) {
+        var t = await db().templates.get(Number(templateId));
+        if (t) sections = JSON.parse(JSON.stringify(t.sections));
+      }
+      var lesson = { id: window.LPDB.uid(), topic: topic || "Untitled lesson", status: "Draft", updatedAt: Date.now(), sections: sections };
       var parts = (topic || "").split("—");
-      if (parts.length > 1) lesson.sections[3].body = parts[1].trim();
-      this.putLesson(lesson);
+      if (parts.length > 1 && lesson.sections[3]) lesson.sections[3].body = parts[1].trim();
+      await db().lessons.put(lesson);
       return lesson;
     },
-    getProfile: function () {
-      return read(PROFILE_KEY, { name: "", classes: "", subjects: "", detail: "Standard", aids: "cheap/local only", evaluation: "3 questions" });
+
+    // ---- versions (snapshot + restore) ----
+    snapshotLesson: async function (id, label) {
+      var l = await db().lessons.get(id);
+      if (!l) return;
+      await db().versions.put({ lessonId: id, label: label || "Snapshot", snapshot: JSON.parse(JSON.stringify({ topic: l.topic, sections: l.sections, checks: l.checks || {} })), updatedAt: Date.now() });
     },
-    saveProfile: function (p) { write(PROFILE_KEY, p); },
-    uid: uid
+    listVersions: function (id) { return db().versions.where("lessonId").equals(id).reverse().sortBy("updatedAt"); },
+    restoreVersion: async function (vid) {
+      var v = await db().versions.get(vid);
+      if (!v) return null;
+      var l = await db().lessons.get(v.lessonId);
+      if (!l) return null;
+      l.topic = v.snapshot.topic; l.sections = v.snapshot.sections; l.checks = v.snapshot.checks;
+      await this.putLesson(l);
+      return l;
+    },
+
+    // ---- templates ----
+    listTemplates: function () { return db().templates.toArray(); },
+    saveTemplate: function (name, sections) { return db().templates.put({ name: name, sections: JSON.parse(JSON.stringify(sections)) }); },
+    deleteTemplate: function (tid) { return db().templates.delete(tid); },
+
+    // ---- schemes / questions / resources ----
+    listSchemes: function () { return db().schemes.toArray(); },
+    addScheme: function (title, body) { return db().schemes.put({ title: title, body: body }); },
+    deleteScheme: function (sid) { return db().schemes.delete(sid); },
+    listQuestions: function () { return db().questions.toArray(); },
+    addQuestion: function (q) { return db().questions.put(q); },
+    deleteQuestion: function (qid) { return db().questions.delete(qid); },
+    listResources: function (kind) { return kind ? db().resources.where("kind").equals(kind).toArray() : db().resources.toArray(); },
+    addResource: function (kind, title, body) { return db().resources.put({ kind: kind, title: title, body: body }); },
+    deleteResource: function (rid) { return db().resources.delete(rid); },
+
+    // ---- annotations (private sticky notes per lesson) ----
+    listAnnotations: function (lessonId) { return db().annotations.where("lessonId").equals(lessonId).toArray(); },
+    addAnnotation: function (lessonId, text) { return db().annotations.put({ lessonId: lessonId, text: text, updatedAt: Date.now() }); },
+    deleteAnnotation: function (aid) { return db().annotations.delete(aid); },
+
+    // ---- collections (favourites) ----
+    isFav: async function (lessonId) { return !!(await db().collections.get(lessonId)); },
+    toggleFav: async function (lessonId) {
+      var existing = await db().collections.get(lessonId);
+      if (existing) await db().collections.delete(lessonId);
+      else await db().collections.put({ lessonId: lessonId });
+      return !existing;
+    },
+
+    // ---- profile (small: stays in localStorage) ----
+    getProfile: function () {
+      try { return JSON.parse(localStorage.getItem("lp_profile")) || null; } catch (e) { return null; }
+    },
+    saveProfile: function (p) { try { localStorage.setItem("lp_profile", JSON.stringify(p)); } catch (e) {} }
   };
+  // defaults merged by pages
+  window.LP_DEFAULT_PROFILE = { name: "", classes: "", subjects: "", detail: "Standard", aids: "cheap/local only", evaluation: "3 questions" };
 })();

@@ -15,14 +15,24 @@
 <div class="card"><b>What are you teaching?</b><br><input id="topic" value="JSS2 Mathematics — Algebra" style="width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;margin-top:8px"></div>
 <div class="card"><b>Start from</b><div class="chips"><span>Topic</span><span>Scheme</span><span>Textbook</span><span>Previous lesson</span><span>Blank</span></div></div>
 <div class="card"><b>How much help?</b><div class="chips"><span class="sel">Quick Prep</span><span>Standard</span><span>Deep Prep</span></div><p class="hint">Static preview — modes + AI arrive in later stages. Quick = essentials only.</p></div>
+<div class="card"><b>Template</b><br><select id="tpl" style="width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;margin-top:8px"><option value="">Standard 18-section note (default)</option></select></div>
 <p><button class="btn-p" id="draftBtn">Draft lesson →</button></p>
 </main>
+<script src="vendor/dexie.min.js"></script>
+<script src="db.js"></script>
 <script src="app.js"></script>
 <script>
-document.getElementById("draftBtn").addEventListener("click", function(){
-  var t = document.getElementById("topic").value || "Untitled lesson";
-  var l = LP.newLesson(t);
-  location.href = "lesson.html?id=" + l.id;
+LP.ready().then(async function(){
+  var sel = document.getElementById("tpl");
+  (await LP.listTemplates()).forEach(function(t){
+    var o = document.createElement("option"); o.value = t.tid; o.textContent = t.name + " (" + t.sections.length + ")";
+    sel.appendChild(o);
+  });
+  document.getElementById("draftBtn").addEventListener("click", async function(){
+    var t = document.getElementById("topic").value || "Untitled lesson";
+    var l = await LP.newLesson(t, document.getElementById("tpl").value || null);
+    location.href = "lesson.html?id=" + l.id;
+  });
 });
 </script>
 </body>

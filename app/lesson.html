@@ -14,6 +14,7 @@
 .sec .row button{min-height:40px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:0 10px;cursor:pointer;font-size:12px}
 .checks label{display:block;padding:8px;border-bottom:1px dashed var(--line);font-size:14px}
 #saveState{font-size:13px;color:var(--muted)}
+.ver,.note-item{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;background:#fff;font-size:14px}
 </style>
 </head>
 <body>
@@ -22,9 +23,9 @@
 <a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <span class="pill-draft" id="status">Draft</span><br><span id="saveState">Saved</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
+<div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <span class="pill-draft" id="status">Draft</span><br><span id="saveState">Loading…</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
 <div id="sections"></div>
-<div class="card no-print"><button class="btn-p" id="addSec">+ Add section</button>
+<div class="card no-print"><button class="btn-p" id="addSec">+ Add section</button> <button id="tplBtn">Save as template</button>
 <h3>Quality checklist (tick as you verify)</h3>
 <div class="checks" id="checks">
 <label><input type="checkbox" data-k="obj"> Objectives written in plain words</label>
@@ -33,64 +34,107 @@
 <label><input type="checkbox" data-k="aids"> Teaching aids are cheap and local</label>
 <label><input type="checkbox" data-k="assign"> Assignment covers only what was taught</label>
 </div></div>
+<div class="card no-print"><h3>Versions (snapshots — restore any time)</h3>
+<p><button id="snapBtn">📸 Save snapshot</button></p><div id="versions"></div></div>
+<div class="card no-print"><h3>Private annotations (never print)</h3>
+<div id="notes"></div>
+<p><input id="noteText" placeholder="e.g. Students struggled here — bring real objects" style="width:75%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px"> <button id="noteBtn">Add</button></p></div>
 </main>
+<script src="vendor/dexie.min.js"></script>
+<script src="db.js"></script>
 <script src="app.js"></script>
 <script>
 (function(){
   var params = new URLSearchParams(location.search);
-  var id = params.get("id");
-  var lesson = id ? LP.getLesson(id) : null;
-  if (!lesson) { lesson = LP.newLesson(params.get("topic") || "Untitled lesson"); history.replaceState(null,"","lesson.html?id="+lesson.id); }
-  var topicEl = document.getElementById("topic");
-  var box = document.getElementById("sections");
+  var lesson = null, timer = null;
+  var topicEl = document.getElementById("topic"), box = document.getElementById("sections");
   var saveState = document.getElementById("saveState");
-  topicEl.value = lesson.topic;
-  var timer = null;
-  function markDirty(){ saveState.textContent = "Editing…"; clearTimeout(timer); timer = setTimeout(save, 400); }
-  function save(){
-    lesson.topic = topicEl.value;
-    lesson.sections = [];
-    box.querySelectorAll(".sec").forEach(function(div){
-      lesson.sections.push({ title: div.querySelector(".t").value, body: div.querySelector("textarea").value });
-    });
-    lesson.updatedAt = Date.now();
-    LP.putLesson(lesson);
-    var d = new Date(); saveState.textContent = "Saved " + d.toTimeString().slice(0,5);
+
+  async function init(){
+    await LP.ready();
+    var id = params.get("id");
+    lesson = id ? await LP.getLesson(id) : null;
+    if (!lesson) { lesson = await LP.newLesson(params.get("topic") || "Untitled lesson", params.get("tpl")); history.replaceState(null,"","lesson.html?id="+lesson.id); }
+    topicEl.value = lesson.topic;
+    render(); renderChecks(); renderVersions(); renderNotes();
+    saveState.textContent = "Saved";
   }
+  function collect(){ lesson.topic = topicEl.value; lesson.sections = [];
+    box.querySelectorAll(".sec").forEach(function(div){ lesson.sections.push({ title: div.querySelector(".t").value, body: div.querySelector("textarea").value }); });
+  }
+  function markDirty(){ saveState.textContent = "Editing…"; clearTimeout(timer); timer = setTimeout(async function(){ collect(); await LP.putLesson(lesson); var d = new Date(); saveState.textContent = "Saved " + d.toTimeString().slice(0,5); }, 400); }
   function render(){
     box.innerHTML = "";
     lesson.sections.forEach(function(s, i){
       var div = document.createElement("div"); div.className = "sec";
       div.innerHTML = '<input class="t" value=""><textarea></textarea><div class="row"><button data-a="up">↑</button><button data-a="dn">↓</button><button data-a="ren">Rename</button><button data-a="rm">Remove</button></div>';
-      div.querySelector(".t").value = s.title;
-      div.querySelector("textarea").value = s.body;
+      div.querySelector(".t").value = s.title; div.querySelector("textarea").value = s.body;
       div.querySelector(".t").addEventListener("input", markDirty);
       div.querySelector("textarea").addEventListener("input", markDirty);
-      div.querySelectorAll("button").forEach(function(b){ b.addEventListener("click", function(){
+      div.querySelectorAll("button").forEach(function(b){ b.addEventListener("click", async function(){
         var a = b.dataset.a, arr = lesson.sections;
         if (a === "up" && i > 0) { var t = arr[i-1]; arr[i-1] = arr[i]; arr[i] = t; }
         if (a === "dn" && i < arr.length-1) { var u = arr[i+1]; arr[i+1] = arr[i]; arr[i] = u; }
         if (a === "rm" && confirm("Remove section '" + arr[i].title + "'?")) arr.splice(i,1);
         if (a === "ren") { var n = prompt("Section name:", arr[i].title); if (n) arr[i].title = n; }
-        lesson.sections = arr; LP.putLesson(lesson); render(); markDirty();
+        lesson.sections = arr; await LP.putLesson(lesson); render(); markDirty();
       });});
       box.appendChild(div);
     });
   }
-  document.getElementById("addSec").addEventListener("click", function(){
+  function renderChecks(){
+    var saved = lesson.checks || {};
+    document.getElementById("checks").querySelectorAll("input").forEach(function(c){
+      c.checked = !!saved[c.dataset.k];
+      c.addEventListener("change", async function(){ lesson.checks = lesson.checks || {}; lesson.checks[c.dataset.k] = c.checked; await LP.putLesson(lesson); });
+    });
+  }
+  async function renderVersions(){
+    var vs = await LP.listVersions(lesson.id);
+    var el = document.getElementById("versions");
+    el.innerHTML = vs.length ? "" : "<span class='hint'>No snapshots yet — save one before big rewrites.</span>";
+    vs.forEach(function(v){
+      var d = document.createElement("div"); d.className = "ver";
+      var dt = new Date(v.updatedAt);
+      d.textContent = v.label + " · " + dt.toLocaleString() + " ";
+      var b = document.createElement("button"); b.textContent = "Restore";
+      b.addEventListener("click", async function(){ if (confirm("Restore '" + v.label + "'? Current text becomes a snapshot first.")){ await LP.snapshotLesson(lesson.id, "Before restore"); lesson = await LP.restoreVersion(v.vid); topicEl.value = lesson.topic; render(); renderChecks(); } });
+      d.appendChild(b); el.appendChild(d);
+    });
+  }
+  async function renderNotes(){
+    var notes = await LP.listAnnotations(lesson.id);
+    var el = document.getElementById("notes"); el.innerHTML = notes.length ? "" : "<span class='hint'>No private notes.</span>";
+    notes.forEach(function(n){
+      var d = document.createElement("div"); d.className = "note-item"; d.textContent = n.text + " ";
+      var b = document.createElement("button"); b.textContent = "Delete";
+      b.addEventListener("click", async function(){ await LP.deleteAnnotation(n.aid); renderNotes(); });
+      d.appendChild(b); el.appendChild(d);
+    });
+  }
+  document.getElementById("addSec").addEventListener("click", async function(){
     var n = prompt("New section name:", "New section"); if (!n) return;
-    lesson.sections.push({ title: n, body: "" }); LP.putLesson(lesson); render(); markDirty();
+    collect(); lesson.sections.push({ title: n, body: "" }); await LP.putLesson(lesson); render(); markDirty();
+  });
+  document.getElementById("tplBtn").addEventListener("click", async function(){
+    var n = prompt("Template name:", lesson.topic + " template"); if (!n) return;
+    collect(); await LP.saveTemplate(n, lesson.sections); alert("Template saved ✓ (see Resources)");
+  });
+  document.getElementById("snapBtn").addEventListener("click", async function(){
+    collect(); await LP.putLesson(lesson);
+    var label = prompt("Snapshot label:", "Draft"); if (label === null) return;
+    await LP.snapshotLesson(lesson.id, label || "Snapshot"); renderVersions();
+  });
+  document.getElementById("noteBtn").addEventListener("click", async function(){
+    var t = document.getElementById("noteText").value.trim(); if (!t) return;
+    await LP.addAnnotation(lesson.id, t); document.getElementById("noteText").value = ""; renderNotes();
   });
   topicEl.addEventListener("input", markDirty);
-  document.getElementById("printBtn").addEventListener("click", function(){ save(); window.print(); });
-  document.getElementById("delBtn").addEventListener("click", function(){
-    if (confirm("Delete this lesson?")) { LP.deleteLesson(lesson.id); location.href = "lessons.html"; }
+  document.getElementById("printBtn").addEventListener("click", function(){ window.print(); });
+  document.getElementById("delBtn").addEventListener("click", async function(){
+    if (confirm("Delete this lesson?")) { await LP.deleteLesson(lesson.id); location.href = "lessons.html"; }
   });
-  // checklist persists per lesson
-  var checks = document.getElementById("checks");
-  var saved = lesson.checks || {};
-  checks.querySelectorAll("input").forEach(function(c){ c.checked = !!saved[c.dataset.k]; c.addEventListener("change", function(){ lesson.checks = lesson.checks || {}; lesson.checks[c.dataset.k] = c.checked; LP.putLesson(lesson); }); });
-  render();
+  init();
 })();
 </script>
 </body>
