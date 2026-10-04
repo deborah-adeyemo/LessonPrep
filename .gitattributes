@@ -1,0 +1,3 @@
+# Normalize line endings to LF on commit (kills phantom diffs on Windows,
+# keeps Netlify/Linux deploys clean). Vendor bundle included deliberately.
+* text=auto eol=lf
