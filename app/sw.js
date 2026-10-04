@@ -2,9 +2,9 @@
    teacher data lives in IndexedDB (never cached, never leaves device). */
 var CACHE = "lp-v2";
 var SHELL = [
-  "index.html", "login.html", "signup.html", "create.html", "lesson.html", "lessons.html",
+  "index.html", "create.html", "lesson.html", "lessons.html",
   "resources.html", "profile.html", "timetable.html", "prototype.html",
-  "styles.css", "app.js", "db.js", "ai.js", "auth.js", "manifest.json", "icon.svg",
+  "styles.css", "app.js", "db.js", "ai.js", "manifest.json", "icon.svg",
   "vendor/dexie.min.js"
 ];
 self.addEventListener("install", function (e) {
