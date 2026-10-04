@@ -1,6 +1,6 @@
 /* LessonPrep Stage 7 — offline shell. Cache-first for app files;
    teacher data lives in IndexedDB (never cached, never leaves device). */
-var CACHE = "lp-v2";
+var CACHE = "lp-v1";
 var SHELL = [
   "index.html", "create.html", "lesson.html", "lessons.html",
   "resources.html", "profile.html", "timetable.html", "prototype.html",

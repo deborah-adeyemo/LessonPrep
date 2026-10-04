@@ -59,10 +59,6 @@ Mode: <select id="aiMode" style="min-height:48px"><option value="quick">Quick Pr
 <div class="card no-print"><h3>Private annotations (never print)</h3>
 <div id="notes"></div>
 <p><input id="noteText" placeholder="e.g. Students struggled here — bring real objects" style="width:75%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px"> <button id="noteBtn">Add</button></p></div>
-<div class="card no-print"><h3>📷 Photo attachments <span class="hint">(schemes, textbook pages, notes — stored on this device, never print)</span></h3>
-<div id="photos" style="display:flex;flex-wrap:wrap;gap:8px"></div>
-<p><select id="ph-kind" style="min-height:48px"><option value="scheme">Scheme</option><option value="textbook">Textbook page</option><option value="note">Handwritten note</option><option value="other">Other</option></select>
-<input type="file" id="ph-file" accept="image/*" style="min-height:48px"> <button id="ph-add">Attach</button> <span id="ph-msg" class="hint"></span></p></div>
 </main>
 <script src="vendor/dexie.min.js"></script>
 <script src="db.js"></script>
@@ -84,7 +80,7 @@ Mode: <select id="aiMode" style="min-height:48px"><option value="quick">Quick Pr
     var statusSel = document.getElementById("statusSel");
     statusSel.value = lesson.status || "Draft";
     statusSel.addEventListener("change", async function(){ lesson.status = statusSel.value; await LP.putLesson(lesson); });
-    render(); renderChecks(); renderVersions(); renderNotes(); renderRefs(); renderPhotos(); aiStatus();
+    render(); renderChecks(); renderVersions(); renderNotes(); renderRefs(); aiStatus();
     var m = params.get("mode"); if (m) document.getElementById("aiMode").value = m;
     saveState.textContent = "Saved";
   }
@@ -171,48 +167,6 @@ Mode: <select id="aiMode" style="min-height:48px"><option value="quick">Quick Pr
     var r = { reached: document.getElementById("r-reached").value.trim(), struggles: document.getElementById("r-struggles").value.trim(), carry: document.getElementById("r-carry").value.trim() };
     if (r.reached || r.struggles || r.carry) { await LP.addReflection(lesson.id, r); }
   }
-  // ---------- Photos (Stage 8b): downscaled, offline, never print ----------
-  function fileToPhoto(file) {
-    return new Promise(function (res, rej) {
-      var url = URL.createObjectURL(file);
-      var img = new Image();
-      img.onload = function () {
-        var max = 1280, w = img.width, h = img.height;
-        if (Math.max(w, h) > max) { var s = max / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
-        var c = document.createElement("canvas"); c.width = w; c.height = h;
-        c.getContext("2d").drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        res(c.toDataURL("image/jpeg", 0.8));
-      };
-      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error("Could not read that image.")); };
-      img.src = url;
-    });
-  }
-  async function renderPhotos() {
-    var photos = await LP.listPhotos(lesson.id);
-    var el = document.getElementById("photos"); el.innerHTML = photos.length ? "" : "<span class='hint'>No photos yet.</span>";
-    photos.forEach(function (p) {
-      var fig = document.createElement("div"); fig.style.cssText = "width:140px";
-      var im = document.createElement("img"); im.src = p.dataUrl; im.alt = p.name;
-      im.style.cssText = "width:140px;height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--line)";
-      im.addEventListener("click", function () { window.open(p.dataUrl, "_blank"); });
-      var cap = document.createElement("div"); cap.style.fontSize = "12px"; cap.textContent = p.kind + " ";
-      var b = document.createElement("button"); b.textContent = "Delete"; b.style.fontSize = "12px";
-      b.addEventListener("click", async function () { if (confirm("Delete this photo?")) { await LP.deletePhoto(p.pid); renderPhotos(); } });
-      cap.appendChild(b); fig.appendChild(im); fig.appendChild(cap); el.appendChild(fig);
-    });
-  }
-  document.getElementById("ph-add").addEventListener("click", async function () {
-    var f = document.getElementById("ph-file").files[0];
-    if (!f) return alert("Choose a photo first.");
-    var msg = document.getElementById("ph-msg"); msg.textContent = "Shrinking…";
-    try {
-      var dataUrl = await fileToPhoto(f);
-      await LP.addPhoto(lesson.id, { kind: document.getElementById("ph-kind").value, name: f.name, dataUrl: dataUrl });
-      document.getElementById("ph-file").value = ""; msg.textContent = "Attached ✓";
-      renderPhotos();
-    } catch (e) { msg.textContent = ""; alert(e.message); }
-  });
   document.getElementById("addSec").addEventListener("click", async function(){
     var n = prompt("New section name:", "New section"); if (!n) return;
     collect(); lesson.sections.push({ title: n, body: "" }); await LP.putLesson(lesson); render(); markDirty();
