@@ -33,15 +33,18 @@
     require: function () {
       if (!this.current()) location.replace("login.html");
     },
-    async signUp(name, identifier, password) {
-      name = (name || "").trim(); identifier = normId(identifier); password = password || "";
-      if (name.length < 2) throw new Error("Please enter your name.");
+    async signUp(firstName, lastName, identifier, password) {
+      firstName = (firstName || "").trim(); lastName = (lastName || "").trim();
+      identifier = normId(identifier); password = password || "";
+      if (firstName.length < 2) throw new Error("Please enter your first name.");
+      if (lastName.length < 2) throw new Error("Please enter your last name.");
       if (identifier.length < 3) throw new Error("Enter an email address or phone number.");
       if (password.length < 6) throw new Error("Password needs at least 6 characters.");
       var users = readUsers();
       if (users.some(function (u) { return u.id === identifier; })) throw new Error("Account exists — please log in instead.");
       var s = salt();
-      var user = { id: identifier, name: name, salt: s, hash: await sha256(s + password), createdAt: Date.now() };
+      var name = firstName + " " + lastName;
+      var user = { id: identifier, name: name, firstName: firstName, lastName: lastName, salt: s, hash: await sha256(s + password), createdAt: Date.now() };
       users.push(user); saveUsers(users);
       localStorage.setItem(SESSION_KEY, JSON.stringify({ id: user.id, name: user.name }));
       return user;
