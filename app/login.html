@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LessonPrep — Log in or Sign up</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14532d">
+<style>
+.hero{background:var(--primary);color:#fff;border-radius:12px;padding:28px;text-align:center}
+.hero p{opacity:.9}
+.mode{display:flex;gap:8px}.mode button{flex:1;min-height:48px;border-radius:8px;border:2px solid var(--line);background:#fff;font-weight:800;cursor:pointer}
+.mode button.on{border-color:var(--primary);background:#dcfce7}
+label{display:block;margin:10px 0}input{width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;font-size:15px}
+#err{display:none;background:#fee2e2;color:#991b1b;border-radius:8px;padding:10px;font-size:14px}
+</style>
+</head>
+<body>
+<main class="wrap" style="max-width:440px">
+<div class="hero"><h1 style="margin:0">LessonPrep</h1><p>Your personal lesson-preparation assistant. Create an account on this device to begin.</p></div>
+<div class="card">
+<div class="mode" id="tabs"><button data-t="login" class="on">Log in</button><button data-t="signup">Sign up</button></div>
+<div id="err"></div>
+<div id="f-name-wrap" style="display:none"><label>Your name<input id="f-name" placeholder="e.g. Adaeze O." autocomplete="name"></label></div>
+<label>Email or phone<input id="f-id" placeholder="e.g. adaeze@example.com" autocomplete="username"></label>
+<label>Password (6+ characters)<input id="f-pw" type="password" autocomplete="current-password"></label>
+<p><button class="btn-p" id="go" style="width:100%">Log in</button></p>
+<p class="hint" id="swap">New here? <a href="#" id="swapLink">Create an account</a></p>
+<p class="hint">Accounts stay on this device — no internet needed after this page loads. Keep your password safe: it cannot be recovered if forgotten.</p>
+</div>
+</main>
+<script src="auth.js"></script>
+<script>
+(function(){
+  // Already logged in? Skip straight into the app.
+  if (Auth.current()) { location.replace("index.html"); return; }
+  var mode = Auth.hasUsers() ? "login" : "signup";
+  var tabs = document.getElementById("tabs"), err = document.getElementById("err");
+  function show(m){
+    mode = m;
+    tabs.querySelectorAll("button").forEach(function(b){ b.classList.toggle("on", b.dataset.t === m); });
+    document.getElementById("f-name-wrap").style.display = m === "signup" ? "" : "none";
+    document.getElementById("go").textContent = m === "signup" ? "Create account" : "Log in";
+    document.getElementById("swap").innerHTML = m === "signup"
+      ? "Have an account? <a href='#' id='swapLink'>Log in</a>"
+      : "New here? <a href='#' id='swapLink'>Create an account</a>";
+    document.getElementById("swapLink").addEventListener("click", function(e){ e.preventDefault(); show(m === "signup" ? "login" : "signup"); });
+    err.style.display = "none";
+  }
+  tabs.addEventListener("click", function(e){ if (e.target.tagName === "BUTTON") show(e.target.dataset.t); });
+  document.getElementById("swapLink").addEventListener("click", function(e){ e.preventDefault(); show(mode === "signup" ? "login" : "signup"); });
+  async function submit(){
+    err.style.display = "none";
+    var id = document.getElementById("f-id").value, pw = document.getElementById("f-pw").value;
+    try {
+      if (mode === "signup") await Auth.signUp(document.getElementById("f-name").value, id, pw);
+      else await Auth.login(id, pw);
+      location.replace("index.html");
+    } catch (e) { err.textContent = e.message; err.style.display = ""; }
+  }
+  document.getElementById("go").addEventListener("click", submit);
+  document.getElementById("f-pw").addEventListener("keydown", function(e){ if (e.key === "Enter") submit(); });
+  show(mode);
+})();
+</script>
+</body>
+</html>

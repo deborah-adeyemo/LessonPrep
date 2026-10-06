@@ -10,11 +10,13 @@
 <style>label{display:block;margin-bottom:10px}input,select{width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;padding:0 12px;margin-top:4px;font-size:15px}</style>
 </head>
 <body>
+<script src="auth.js"></script><script>Auth.require();</script>
 <header class="appbar">LessonPrep</header>
 <nav class="tabs" aria-label="Main">
 <a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a class="on" href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
+<div class="card"><b>Signed in as <span id="who"></span></b><br><button id="logout">Log out</button></div>
 <div class="card"><b>My teaching profile</b> <span class="hint">(saved on this device)</span>
 <label>Name <input id="f-name" placeholder="e.g. Adaeze O."></label>
 <label>Classes (comma separated) <input id="f-classes" placeholder="JSS2A, JSS1B"></label>
@@ -39,6 +41,9 @@
 <script src="ai.js"></script>
 <script>
 LP.ready().then(function(){
+  var me = Auth.current();
+  document.getElementById("who").textContent = me ? me.name + " (" + me.id + ")" : "";
+  document.getElementById("logout").addEventListener("click", function(){ Auth.logout(); });
   var p = LP.getProfile() || window.LP_DEFAULT_PROFILE;
   document.getElementById("f-name").value = p.name;
   document.getElementById("f-classes").value = p.classes;
@@ -50,8 +55,7 @@ LP.ready().then(function(){
     LP.saveProfile({ name: document.getElementById("f-name").value, classes: document.getElementById("f-classes").value, subjects: document.getElementById("f-subjects").value, detail: document.getElementById("f-detail").value, aids: document.getElementById("f-aids").value, evaluation: document.getElementById("f-eval").value });
     document.getElementById("msg").textContent = "Saved ✓";
   });
-  var aiCfg = AI.getConfig();
-  document.getElementById("ai-provider").value = aiCfg.provider;
+  var aiCfg = AI.getConfig();  document.getElementById("ai-provider").value = aiCfg.provider;
   document.getElementById("ai-endpoint").value = aiCfg.endpoint;
   document.getElementById("ai-save").addEventListener("click", function(){
     AI.saveConfig({ provider: document.getElementById("ai-provider").value, endpoint: document.getElementById("ai-endpoint").value.trim() });
