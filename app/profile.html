@@ -17,6 +17,11 @@
 </nav>
 <main class="wrap">
 <div class="card"><b>Signed in as <span id="who"></span></b><br><button id="logout">Log out</button></div>
+<div class="card"><b>Cloud accounts (optional — same login on any device)</b> <span class="hint" id="cloudState"></span>
+<label>Supabase URL<input id="sb-url" placeholder="https://xyz.supabase.co"></label>
+<label>Supabase anon key<input id="sb-key" placeholder="paste publishable key"></label>
+<p><button id="sb-save">Save cloud settings</button> <button id="sb-clear">Use device only</button> <span id="sb-msg" class="hint"></span></p>
+<p class="hint">Free setup, 5 minutes — see docs in the repo (docs/SUPABASE_SETUP.md). Phone-number accounts always stay on this device.</p></div>
 <div class="card"><b>My teaching profile</b> <span class="hint">(saved on this device)</span>
 <label>Name <input id="f-name" placeholder="e.g. Adaeze O."></label>
 <label>Classes (comma separated) <input id="f-classes" placeholder="JSS2A, JSS1B"></label>
@@ -39,11 +44,27 @@
 <script src="db.js"></script>
 <script src="app.js"></script>
 <script src="ai.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 LP.ready().then(function(){
   var me = Auth.current();
-  document.getElementById("who").textContent = me ? me.name + " (" + me.id + ")" : "";
+  document.getElementById("who").textContent = me ? me.name + " (" + me.id + ")" + (me.cloud ? " · cloud" : " · this device") : "";
   document.getElementById("logout").addEventListener("click", function(){ Auth.logout(); });
+  var sb = Auth.cloudConfig() || {};
+  document.getElementById("sb-url").value = sb.url || "";
+  document.getElementById("sb-key").value = sb.key || "";
+  document.getElementById("cloudState").textContent = Auth.cloudOn() ? "● cloud ON" : "○ device only";
+  document.getElementById("sb-save").addEventListener("click", function(){
+    Auth.saveCloud(document.getElementById("sb-url").value, document.getElementById("sb-key").value);
+    document.getElementById("sb-msg").textContent = "Saved ✓ — new email sign-ups now go to the cloud.";
+    document.getElementById("cloudState").textContent = Auth.cloudOn() ? "● cloud ON" : "○ device only (offline or key missing)";
+  });
+  document.getElementById("sb-clear").addEventListener("click", function(){
+    Auth.saveCloud("", "");
+    document.getElementById("sb-url").value = ""; document.getElementById("sb-key").value = "";
+    document.getElementById("sb-msg").textContent = "Cloud off — device accounts only.";
+    document.getElementById("cloudState").textContent = "○ device only";
+  });
   var p = LP.getProfile() || window.LP_DEFAULT_PROFILE;
   document.getElementById("f-name").value = p.name;
   document.getElementById("f-classes").value = p.classes;

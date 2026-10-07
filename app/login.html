@@ -26,10 +26,12 @@ label{display:block;margin:10px 0}input{width:100%;min-height:48px;border:1px so
 <label>Email or phone<input id="f-id" placeholder="e.g. adaeze@example.com" autocomplete="username"></label>
 <label>Password (6+ characters)<input id="f-pw" type="password" autocomplete="current-password"></label>
 <p><button class="btn-p" id="go" style="width:100%">Log in</button></p>
+<p class="hint" id="forgotWrap" style="display:none"><a href="#" id="forgot">Forgot password?</a> <span id="forgotMsg"></span></p>
 <p class="hint" id="swap">New here? <a href="#" id="swapLink">Create an account</a></p>
 <p class="hint">Accounts stay on this device — no internet needed after this page loads. Keep your password safe: it cannot be recovered if forgotten.</p>
 </div>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
 <script>
 (function(){
@@ -61,6 +63,15 @@ label{display:block;margin:10px 0}input{width:100%;min-height:48px;border:1px so
   }
   document.getElementById("go").addEventListener("click", submit);
   document.getElementById("f-pw").addEventListener("keydown", function(e){ if (e.key === "Enter") submit(); });
+  if (Auth.cloudOn()) {
+    document.getElementById("forgotWrap").style.display = "";
+    document.getElementById("forgot").addEventListener("click", async function(e){
+      e.preventDefault();
+      var id = document.getElementById("f-id").value;
+      try { await Auth.resetPassword(id); document.getElementById("forgotMsg").textContent = "Reset email sent ✓"; }
+      catch (err) { document.getElementById("forgotMsg").textContent = err.message; }
+    });
+  }
   show(mode);
 })();
 </script>
