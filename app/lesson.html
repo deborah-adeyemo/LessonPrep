@@ -29,7 +29,7 @@
 <a href="index.html">Home</a><a href="create.html">Create</a><a href="lessons.html">Lessons</a><a href="resources.html">Resources</a><a href="profile.html">Profile</a>
 </nav>
 <main class="wrap">
-<div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <select id="statusSel" style="min-height:40px"><option>Draft</option><option>Ready</option></select><br><span id="saveState">Loading…</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
+<div class="card no-print"><input id="topic" style="width:100%;font-size:18px;font-weight:800;border:1px solid transparent" value=""> <select id="statusSel" style="min-height:40px"><option>Draft</option><option>Ready</option></select><br><span id="saveState">Loading…</span> · <a href="lessons.html">← All lessons</a> · <button id="printBtn">Print</button> · <button id="shareBtn">Share</button> · <button id="delBtn" style="color:#b91c1c">Delete</button></div>
 <div class="card no-print" id="aiCard"><h3>✨ AI assistant <span class="hint">(online only — your draft is never touched until you press Accept)</span></h3>
 <div class="ai-banner" id="aiBanner" style="display:none"></div>
 <div id="aiSetup" style="display:none">AI is not set up yet — <a href="profile.html">add your free proxy URL in Profile → AI settings</a>, or install Ollama for fully local AI.</div>
@@ -187,6 +187,17 @@ Mode: <select id="aiMode" style="min-height:48px"><option value="quick">Quick Pr
   });
   topicEl.addEventListener("input", markDirty);
   document.getElementById("printBtn").addEventListener("click", function(){ window.print(); });
+  document.getElementById("shareBtn").addEventListener("click", async function(){
+    collect(); await LP.putLesson(lesson);
+    var lines = ["LESSON NOTE — " + lesson.topic, ""];
+    lesson.sections.forEach(function(s){ lines.push(s.title.toUpperCase()); lines.push(s.body || "—"); lines.push(""); });
+    var text = lines.join("\n");
+    if (navigator.share) { try { await navigator.share({ title: "LessonPrep: " + lesson.topic, text: text }); } catch (e) { /* dismissed */ } }
+    else {
+      try { await navigator.clipboard.writeText(text); alert("Sharing is not supported in this browser — lesson copied. Paste it into WhatsApp or anywhere."); }
+      catch (e) { prompt("Copy your lesson:", text); }
+    }
+  });
   document.getElementById("delBtn").addEventListener("click", async function(){
     if (confirm("Delete this lesson?")) { await LP.deleteLesson(lesson.id); location.href = "lessons.html"; }
   });
