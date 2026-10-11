@@ -1,10 +1,11 @@
 /* LessonPrep Stage 7 — offline shell. Cache-first for app files;
    teacher data lives in IndexedDB (never cached, never leaves device). */
-var CACHE = "lp-v2";
+var CACHE = "lp-v3";
 var SHELL = [
   "index.html", "login.html", "create.html", "lesson.html", "lessons.html",
   "resources.html", "profile.html", "timetable.html", "prototype.html",
   "styles.css", "app.js", "db.js", "ai.js", "auth.js", "manifest.json", "icon.svg",
+  "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png",
   "vendor/dexie.min.js"
 ];
 self.addEventListener("install", function (e) {
