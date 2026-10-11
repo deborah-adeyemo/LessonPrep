@@ -5,7 +5,7 @@ var SHELL = [
   "index.html", "login.html", "create.html", "lesson.html", "lessons.html",
   "resources.html", "profile.html", "timetable.html", "prototype.html",
   "styles.css", "app.js", "db.js", "ai.js", "auth.js", "manifest.json", "icon.svg",
-  "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png",
+  "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png",
   "vendor/dexie.min.js"
 ];
 self.addEventListener("install", function (e) {
