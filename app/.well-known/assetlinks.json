@@ -1,1 +1,1 @@
-[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"app.lessonsprep.twa","sha256_cert_fingerprints":["REPLACE_WITH_PLAY_SIGNING_SHA256"]}}]
+[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"app.lessonsprep.twa","sha256_cert_fingerprints":["41:C2:81:B1:88:F7:8D:D0:BB:81:85:E9:9A:E2:3A:D4:77:B7:F3:A0:59:53:40:0C:9A:05:29:06:03:EC:E5:AF"]}}]
