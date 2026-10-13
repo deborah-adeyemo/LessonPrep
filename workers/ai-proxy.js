@@ -49,7 +49,7 @@ export default {
     let body;
     try { body = await request.json(); } catch (e) { return Response.json({ error: "Bad JSON" }, { status: 400, headers: cors }); }
     const prompt = promptFor(body.mode || "standard", body.section || null, body.context || {}, body.instruction || "");
-    const model = env.MODEL || "gemini-2.0-flash";
+    const model = env.MODEL || "gemini-3.8-flash";
 
     const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + env.GOOGLE_API_KEY, {
       method: "POST",
